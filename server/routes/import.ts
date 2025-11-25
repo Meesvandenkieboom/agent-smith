@@ -151,18 +151,34 @@ export async function handleImportRoutes(
       const { promisify } = await import('util');
       const execAsync = promisify(exec);
 
+      // Detect if running in WSL
+      const isWSL = (() => {
+        try {
+          if (process.platform === 'linux' && fs.existsSync('/proc/version')) {
+            const version = fs.readFileSync('/proc/version', 'utf8').toLowerCase();
+            return version.includes('microsoft') || version.includes('wsl');
+          }
+        } catch {
+          // Ignore
+        }
+        return false;
+      })();
+
       let command: string;
+      let isWindowsDialog = false;
 
       // Cross-platform file/folder picker
       if (process.platform === 'darwin') {
         // macOS - AppleScript to allow multiple file/folder selection
         command = `osascript -e 'tell application "System Events" to activate' -e 'tell application "System Events" to set thePaths to choose file with prompt "Select files or folders to import" with multiple selections allowed' -e 'set text item delimiters to linefeed' -e 'thePaths as text'`;
-      } else if (process.platform === 'linux') {
-        // Linux - zenity for file selection
-        command = `zenity --file-selection --multiple --separator="\n" --title="Select files or folders to import"`;
+      } else if (isWSL || process.platform === 'win32') {
+        // WSL or Windows - use PowerShell.exe (Windows PowerShell from WSL)
+        isWindowsDialog = true;
+        const powershellCmd = isWSL ? 'powershell.exe' : 'powershell';
+        command = `${powershellCmd} -Command "Add-Type -AssemblyName System.Windows.Forms; $openFileDialog = New-Object System.Windows.Forms.OpenFileDialog; $openFileDialog.Multiselect = \\$true; $openFileDialog.Title = 'Select files or folders to import'; if ($openFileDialog.ShowDialog() -eq 'OK') { $openFileDialog.FileNames | ForEach-Object { Write-Output \\$_ } }"`;
       } else {
-        // Windows - PowerShell
-        command = `powershell -Command "Add-Type -AssemblyName System.Windows.Forms; $openFileDialog = New-Object System.Windows.Forms.OpenFileDialog; $openFileDialog.Multiselect = $true; $openFileDialog.Title = 'Select files or folders to import'; if ($openFileDialog.ShowDialog() -eq 'OK') { $openFileDialog.FileNames | ForEach-Object { Write-Output $_ } }"`;
+        // Linux (non-WSL) - zenity for file selection
+        command = `zenity --file-selection --multiple --separator="\n" --title="Select files or folders to import"`;
       }
 
       console.log('🔍 Opening import picker dialog...');
@@ -186,8 +202,22 @@ export async function handleImportRoutes(
             // Remove "Macintosh HD:" prefix and convert colons to slashes
             return '/' + p.replace(/^[^:]+:/, '').replace(/:/g, '/');
           });
+        } else if (isWindowsDialog) {
+          // Windows/WSL: Convert Windows paths to WSL paths if needed
+          selectedPaths = stdout.trim().split('\n')
+            .map(p => p.trim().replace(/\r/g, ''))
+            .filter(p => p.length > 0)
+            .map(p => {
+              // Convert Windows path to WSL path if in WSL
+              if (isWSL && p.match(/^[A-Z]:\\/)) {
+                const drive = p[0].toLowerCase();
+                const pathPart = p.slice(3).replace(/\\/g, '/');
+                return `/mnt/${drive}/${pathPart}`;
+              }
+              return p;
+            });
         } else {
-          // Windows/Linux: Clean paths and remove carriage returns
+          // Linux: Clean paths and remove carriage returns
           selectedPaths = stdout.trim().split('\n')
             .map(p => p.trim().replace(/\r/g, ''))
             .filter(p => p.length > 0);

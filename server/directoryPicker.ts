@@ -20,6 +20,22 @@
 
 import { spawn } from 'child_process';
 import os from 'os';
+import fs from 'fs';
+
+/**
+ * Detect if running in WSL
+ */
+function isWSL(): boolean {
+  try {
+    if (os.platform() === 'linux' && fs.existsSync('/proc/version')) {
+      const version = fs.readFileSync('/proc/version', 'utf8').toLowerCase();
+      return version.includes('microsoft') || version.includes('wsl');
+    }
+  } catch {
+    // Ignore
+  }
+  return false;
+}
 
 /**
  * Opens a native directory picker dialog
@@ -28,6 +44,7 @@ import os from 'os';
 export function openDirectoryPicker(): Promise<string | null> {
   return new Promise((resolve) => {
     const platform = os.platform();
+    const wslDetected = isWSL();
 
     if (platform === 'darwin') {
       // macOS - use osascript (AppleScript)
@@ -57,8 +74,45 @@ export function openDirectoryPicker(): Promise<string | null> {
         }
       });
 
+    } else if (wslDetected || platform === 'win32') {
+      // WSL or Windows - use PowerShell
+      const powershellCmd = wslDetected ? 'powershell.exe' : 'powershell';
+      const script = `
+        Add-Type -AssemblyName System.Windows.Forms
+        $dialog = New-Object System.Windows.Forms.FolderBrowserDialog
+        $dialog.Description = "Select Working Directory"
+        $result = $dialog.ShowDialog()
+        if ($result -eq [System.Windows.Forms.DialogResult]::OK) {
+          Write-Output $dialog.SelectedPath
+        }
+      `;
+
+      const child = spawn(powershellCmd, ['-Command', script]);
+      let output = '';
+
+      child.stdout.on('data', (data) => {
+        output += data.toString();
+      });
+
+      child.on('close', (code) => {
+        if (code === 0 && output.trim()) {
+          let dirPath = output.trim();
+
+          // Convert Windows path to WSL path if in WSL
+          if (wslDetected && dirPath.match(/^[A-Z]:\\/)) {
+            const drive = dirPath[0].toLowerCase();
+            const pathPart = dirPath.slice(3).replace(/\\/g, '/');
+            dirPath = `/mnt/${drive}/${pathPart}`;
+          }
+
+          resolve(dirPath);
+        } else {
+          resolve(null);
+        }
+      });
+
     } else if (platform === 'linux') {
-      // Linux - try zenity first, then kdialog
+      // Linux (non-WSL) - try zenity first, then kdialog
       const child = spawn('zenity', ['--file-selection', '--directory', '--title=Select Working Directory']);
       let output = '';
 
@@ -85,33 +139,6 @@ export function openDirectoryPicker(): Promise<string | null> {
               resolve(null);
             }
           });
-        }
-      });
-
-    } else if (platform === 'win32') {
-      // Windows - use PowerShell
-      const script = `
-        Add-Type -AssemblyName System.Windows.Forms
-        $dialog = New-Object System.Windows.Forms.FolderBrowserDialog
-        $dialog.Description = "Select Working Directory"
-        $result = $dialog.ShowDialog()
-        if ($result -eq [System.Windows.Forms.DialogResult]::OK) {
-          Write-Output $dialog.SelectedPath
-        }
-      `;
-
-      const child = spawn('powershell', ['-Command', script]);
-      let output = '';
-
-      child.stdout.on('data', (data) => {
-        output += data.toString();
-      });
-
-      child.on('close', (code) => {
-        if (code === 0 && output.trim()) {
-          resolve(output.trim());
-        } else {
-          resolve(null);
         }
       });
 
