@@ -52,6 +52,7 @@ import { handleDirectoryRoutes } from "./routes/directory";
 import { handleUserConfigRoutes } from "./routes/userConfig";
 import { handleCommandRoutes } from "./routes/commands";
 import { handleImportRoutes } from "./routes/import";
+import { handleGitHubRoutes } from "./routes/github";
 import { handleWebSocketMessage } from "./websocket/messageHandlers";
 import type { ServerWebSocket, Server as ServerType } from "bun";
 
@@ -170,6 +171,12 @@ const server = Bun.serve({
     const importResponse = await handleImportRoutes(req, url);
     if (importResponse) {
       return importResponse;
+    }
+
+    // Try GitHub routes
+    const githubResponse = await handleGitHubRoutes(req, url);
+    if (githubResponse) {
+      return githubResponse;
     }
 
     // Try to handle as static file

@@ -54,7 +54,6 @@ export function ChatContainer() {
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [_isLoadingSessions, setIsLoadingSessions] = useState(true);
   const [currentSessionMode, setCurrentSessionMode] = useState<'general' | 'coder' | 'intense-research' | 'spark'>('general');
-  const [lastImportedFolder, setLastImportedFolder] = useState<string | null>(null);
 
   // Slash commands available for current session
   const [availableCommands, setAvailableCommands] = useState<SlashCommand[]>([]);
@@ -100,6 +99,10 @@ export function ChatContainer() {
 
   // Build wizard state
   const [isBuildWizardOpen, setIsBuildWizardOpen] = useState(false);
+
+  // GitHub connection state (per-session)
+  const [isGithubEnabled, setIsGithubEnabled] = useState(false);
+  const [githubEnabledSessions, setGithubEnabledSessions] = useState<Set<string>>(new Set());
 
   const sessionAPI = useSessionAPI();
 
@@ -334,6 +337,44 @@ export function ChatContainer() {
       }
     }
     // If no session exists yet, the mode will be applied when session is created
+  };
+
+  // Handle GitHub toggle
+  const handleToggleGithub = () => {
+    // Can only enable GitHub before chat starts
+    // Once enabled for a session, it cannot be disabled
+    if (!currentSessionId) {
+      // No session yet - just toggle the default state for new chats
+      setIsGithubEnabled(!isGithubEnabled);
+      return;
+    }
+
+    // If messages exist, can't toggle (locked in)
+    if (messages.length > 0) {
+      if (githubEnabledSessions.has(currentSessionId)) {
+        toast.info('GitHub is locked for this chat', {
+          description: 'GitHub access cannot be disabled after chat has started'
+        });
+      } else {
+        toast.info('Cannot enable GitHub', {
+          description: 'GitHub must be enabled before starting the chat'
+        });
+      }
+      return;
+    }
+
+    // Toggle GitHub for this session (before chat starts)
+    const newEnabled = !githubEnabledSessions.has(currentSessionId);
+    setGithubEnabledSessions(prev => {
+      const next = new Set(prev);
+      if (newEnabled) {
+        next.add(currentSessionId);
+      } else {
+        next.delete(currentSessionId);
+      }
+      return next;
+    });
+    setIsGithubEnabled(newEnabled);
   };
 
   // Handle plan approval
@@ -983,15 +1024,8 @@ export function ChatContainer() {
   };
 
   const handleSubmit = async (files?: import('../message/types').FileAttachment[], mode?: 'general' | 'coder' | 'intense-research' | 'spark', messageOverride?: string) => {
-    let messageText = messageOverride || inputValue;
+    const messageText = messageOverride || inputValue;
     if (!messageText.trim()) return;
-
-    // Auto-inject imported folder context if available
-    if (lastImportedFolder) {
-      messageText = `[Imported files are in folder: ${lastImportedFolder}]\n\n${messageText}`;
-      // Clear the folder after first use
-      setLastImportedFolder(null);
-    }
 
     if (!isConnected) return;
 
@@ -1165,7 +1199,6 @@ export function ChatContainer() {
         onChatSelect={handleSessionSelect}
         onChatDelete={handleChatDelete}
         onChatRename={handleChatRename}
-        onFilesImported={setLastImportedFolder}
         currentSessionId={currentSessionId}
       />
 
@@ -1258,6 +1291,8 @@ export function ChatContainer() {
             isGenerating={isLoading}
             isPlanMode={isPlanMode}
             onTogglePlanMode={handleTogglePlanMode}
+            isGithubEnabled={isGithubEnabled}
+            onToggleGithub={handleToggleGithub}
             availableCommands={availableCommands}
             onOpenBuildWizard={handleOpenBuildWizard}
             mode={currentSessionMode}
@@ -1284,6 +1319,9 @@ export function ChatContainer() {
               isGenerating={isLoading}
               isPlanMode={isPlanMode}
               onTogglePlanMode={handleTogglePlanMode}
+              isGithubEnabled={currentSessionId ? githubEnabledSessions.has(currentSessionId) : isGithubEnabled}
+              onToggleGithub={handleToggleGithub}
+              canToggleGithub={messages.length === 0}
               backgroundProcesses={backgroundProcesses.get(currentSessionId || '') || []}
               onKillProcess={handleKillProcess}
               mode={currentSessionId ? currentSessionMode : undefined}

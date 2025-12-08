@@ -19,7 +19,7 @@
  */
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Menu, Edit3, Search, Trash2, Edit, FolderOpen, FolderInput, Loader2 } from 'lucide-react';
+import { Menu, Edit3, Search, Trash2, Edit, FolderOpen, Github, Loader2 } from 'lucide-react';
 import { toast } from '../../utils/toast';
 
 interface Chat {
@@ -30,6 +30,17 @@ interface Chat {
   isLoading?: boolean;
 }
 
+interface GitHubStatus {
+  connected: boolean;
+  configured: boolean;
+  user?: {
+    login: string;
+    name: string | null;
+    avatar_url: string;
+  };
+  message?: string;
+}
+
 interface SidebarProps {
   isOpen: boolean;
   onToggle: () => void;
@@ -38,17 +49,91 @@ interface SidebarProps {
   onChatSelect?: (chatId: string) => void;
   onChatDelete?: (chatId: string) => void;
   onChatRename?: (chatId: string, newTitle: string) => void;
-  onFilesImported?: (folderName: string) => void;
   currentSessionId?: string | null;
 }
 
-export function Sidebar({ isOpen, onToggle, chats = [], onNewChat, onChatSelect, onChatDelete, onChatRename, onFilesImported, currentSessionId }: SidebarProps) {
+export function Sidebar({ isOpen, onToggle, chats = [], onNewChat, onChatSelect, onChatDelete, onChatRename, currentSessionId: _currentSessionId }: SidebarProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [isAllChatsExpanded, setIsAllChatsExpanded] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState('');
-  const [isImporting, setIsImporting] = useState(false);
+  const [githubStatus, setGithubStatus] = useState<GitHubStatus | null>(null);
+  const [isLoadingGithub, setIsLoadingGithub] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Check GitHub status on mount
+  useEffect(() => {
+    checkGithubStatus();
+  }, []);
+
+  const checkGithubStatus = async () => {
+    try {
+      const response = await fetch('/api/github/status');
+      const data = await response.json() as GitHubStatus;
+      setGithubStatus(data);
+    } catch (error) {
+      console.error('Failed to check GitHub status:', error);
+    }
+  };
+
+  const handleGithubConnect = async () => {
+    if (isLoadingGithub) return;
+
+    if (githubStatus?.connected) {
+      // Disconnect
+      setIsLoadingGithub(true);
+      try {
+        await fetch('/api/github/disconnect', { method: 'POST' });
+        setGithubStatus({ connected: false, configured: true });
+        toast.success('Disconnected from GitHub');
+      } catch {
+        toast.error('Failed to disconnect from GitHub');
+      } finally {
+        setIsLoadingGithub(false);
+      }
+      return;
+    }
+
+    // Start OAuth flow
+    setIsLoadingGithub(true);
+    try {
+      const response = await fetch('/api/github/auth');
+      const data = await response.json() as { success: boolean; authUrl?: string; error?: string };
+
+      if (data.success && data.authUrl) {
+        // Open GitHub auth in same window (will redirect back)
+        window.location.href = data.authUrl;
+      } else {
+        toast.error('GitHub OAuth not configured', {
+          description: data.error || 'Contact administrator to set up GitHub integration'
+        });
+      }
+    } catch {
+      toast.error('Failed to start GitHub connection');
+    } finally {
+      setIsLoadingGithub(false);
+    }
+  };
+
+  // Check for OAuth callback in URL
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const githubConnected = params.get('github_connected');
+    const githubError = params.get('github_error');
+
+    if (githubConnected === 'true') {
+      toast.success('Connected to GitHub!');
+      checkGithubStatus();
+      // Clean URL
+      window.history.replaceState({}, '', window.location.pathname);
+    } else if (githubError) {
+      toast.error('GitHub connection failed', {
+        description: githubError
+      });
+      // Clean URL
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
 
   // Group chats by date
   const groupChatsByDate = (chats: Chat[]) => {
@@ -175,106 +260,6 @@ export function Sidebar({ isOpen, onToggle, chats = [], onNewChat, onChatSelect,
     }
   };
 
-  const handleImportFiles = async () => {
-    if (isImporting) return; // Prevent multiple imports
-
-    try {
-      // Step 1: Open file/folder picker first
-      const pickerResponse = await fetch('/api/pick-import-items', {
-        method: 'POST',
-      });
-
-      const pickerData = await pickerResponse.json();
-
-      if (!pickerData.success) {
-        if (pickerData.cancelled) {
-          // User cancelled - no need to show error
-          return;
-        }
-        toast.error('Failed to select files', {
-          description: pickerData.error || 'Unknown error'
-        });
-        return;
-      }
-
-      if (!pickerData.paths || pickerData.paths.length === 0) {
-        toast.info('No files selected');
-        return;
-      }
-
-      // Step 2: Show loading state and create session if needed
-      setIsImporting(true);
-      toast.info('Importing files...', { duration: 10000 });
-
-      let sessionId = currentSessionId;
-      if (!sessionId) {
-        const createResponse = await fetch('/api/sessions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            title: 'New Chat',
-            mode: 'general'
-          }),
-        });
-
-        if (!createResponse.ok) {
-          toast.error('Failed to create new chat', {
-            description: 'Could not create a chat for your imported files'
-          });
-          setIsImporting(false);
-          return;
-        }
-
-        const newSession = await createResponse.json();
-        sessionId = newSession.id;
-
-        // Trigger chat selection to update UI
-        if (sessionId) {
-          onChatSelect?.(sessionId);
-        }
-      }
-
-      // Step 3: Import selected files/folders
-      const importResponse = await fetch(`/api/sessions/${sessionId}/import`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          paths: pickerData.paths
-        }),
-      });
-
-      const importData = await importResponse.json();
-      setIsImporting(false);
-
-      if (importData.success) {
-        const folderName = importData.importFolder;
-        const itemsList = importData.copiedItems?.slice(0, 3).join(', ') || '';
-        const moreItems = importData.copiedCount > 3 ? ` and ${importData.copiedCount - 3} more` : '';
-
-        // Notify parent component about the import
-        onFilesImported?.(folderName);
-
-        toast.success('Files imported successfully', {
-          description: `${importData.copiedCount} item(s) copied to folder: ${folderName}\n\nFiles: ${itemsList}${moreItems}\n\nThe agent will automatically know to check this folder.`,
-          duration: 8000,
-        });
-      } else {
-        toast.error('Failed to import files', {
-          description: importData.error || 'Unknown error'
-        });
-      }
-    } catch (error) {
-      setIsImporting(false);
-      toast.error('Failed to import files', {
-        description: error instanceof Error ? error.message : 'Unknown error'
-      });
-    }
-  };
-
   return (
     <div className={`sidebar ${isOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
       <div className="sidebar-container">
@@ -300,19 +285,25 @@ export function Sidebar({ isOpen, onToggle, chats = [], onNewChat, onChatSelect,
           <span>Open Chat Folder</span>
         </button>
 
-        {/* Import Files Button */}
+        {/* GitHub Connect Button */}
         <button
-          className="sidebar-new-chat-btn"
-          onClick={handleImportFiles}
+          className={`sidebar-new-chat-btn ${githubStatus?.connected ? 'sidebar-github-connected' : ''}`}
+          onClick={handleGithubConnect}
           style={{ marginTop: '0.5rem' }}
-          disabled={isImporting}
+          disabled={isLoadingGithub}
         >
-          {isImporting ? (
+          {isLoadingGithub ? (
             <Loader2 size={20} opacity={0.8} className="animate-spin" />
           ) : (
-            <FolderInput size={20} opacity={0.8} />
+            <Github size={20} opacity={0.8} />
           )}
-          <span>{isImporting ? 'Importing...' : 'Import Files'}</span>
+          <span>
+            {isLoadingGithub
+              ? 'Connecting...'
+              : githubStatus?.connected
+                ? `${githubStatus.user?.login || 'Connected'}`
+                : 'Connect to GitHub'}
+          </span>
         </button>
 
         {/* Search */}

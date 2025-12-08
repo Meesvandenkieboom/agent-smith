@@ -19,7 +19,7 @@
  */
 
 import React, { useRef, useState, useEffect } from 'react';
-import { Send, Plus, X, Square } from 'lucide-react';
+import { Send, Plus, X, Square, Github } from 'lucide-react';
 import type { FileAttachment } from '../message/types';
 import { ModeSelector } from './ModeSelector';
 import { ModeIndicator } from './ModeIndicator';
@@ -35,6 +35,8 @@ interface NewChatWelcomeProps {
   isGenerating?: boolean;
   isPlanMode?: boolean;
   onTogglePlanMode?: () => void;
+  isGithubEnabled?: boolean;
+  onToggleGithub?: () => void;
   availableCommands?: SlashCommand[];
   onOpenBuildWizard?: () => void;
   mode?: 'general' | 'coder' | 'intense-research' | 'spark';
@@ -48,7 +50,7 @@ const CAPABILITIES = [
   "I can analyze data and files"
 ];
 
-export function NewChatWelcome({ inputValue, onInputChange, onSubmit, onStop, disabled, isGenerating, isPlanMode, onTogglePlanMode, availableCommands = [], onOpenBuildWizard, mode }: NewChatWelcomeProps) {
+export function NewChatWelcome({ inputValue, onInputChange, onSubmit, onStop, disabled, isGenerating, isPlanMode, onTogglePlanMode, isGithubEnabled, onToggleGithub, availableCommands = [], onOpenBuildWizard, mode }: NewChatWelcomeProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [attachedFiles, setAttachedFiles] = useState<FileAttachment[]>([]);
@@ -524,6 +526,25 @@ export function NewChatWelcome({ inputValue, onInputChange, onSubmit, onStop, di
                         aria-label={isPlanMode ? "Deactivate Plan Mode" : "Activate Plan Mode"}
                       >
                         Plan Mode
+                      </button>
+                    )}
+
+                    {/* GitHub toggle button */}
+                    {onToggleGithub && (
+                      <button
+                        onClick={onToggleGithub}
+                        type="button"
+                        className={`${isGithubEnabled ? 'send-button-active' : 'border border-white/10 bg-transparent text-white hover:bg-gray-800'} rounded-lg transition outline-none focus:outline-none flex items-center gap-1.5`}
+                        style={{
+                          fontSize: '0.75rem',
+                          fontWeight: 500,
+                          padding: '0.375rem 0.75rem',
+                        }}
+                        title={isGithubEnabled ? "GitHub Enabled - Click to disable" : "Enable GitHub Access"}
+                        aria-label={isGithubEnabled ? "Disable GitHub" : "Enable GitHub"}
+                      >
+                        <Github size={14} />
+                        <span>GitHub</span>
                       </button>
                     )}
                   </div>

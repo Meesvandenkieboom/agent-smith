@@ -8,6 +8,7 @@ data/
 server/generated/
 agent-girl
 release/
+.history
 
 # Ignore all .md files except README, CLAUDE, OAUTH, and command files
 *.md

@@ -19,7 +19,7 @@
  */
 
 import React, { useRef, useState, useEffect } from 'react';
-import { Send, Plus, X, Square, Palette, List } from 'lucide-react';
+import { Send, Plus, X, Square, Palette, List, Github } from 'lucide-react';
 import type { FileAttachment } from '../message/types';
 import type { BackgroundProcess } from '../process/BackgroundProcessMonitor';
 import { ModeIndicator } from './ModeIndicator';
@@ -39,6 +39,9 @@ interface ChatInputProps {
   placeholder?: string;
   isPlanMode?: boolean;
   onTogglePlanMode?: () => void;
+  isGithubEnabled?: boolean;
+  onToggleGithub?: () => void;
+  canToggleGithub?: boolean; // false once chat has started
   backgroundProcesses?: BackgroundProcess[];
   onKillProcess?: (bashId: string) => void;
   mode?: 'general' | 'coder' | 'intense-research' | 'spark';
@@ -51,7 +54,7 @@ interface ChatInputProps {
   selectedModel?: string;
 }
 
-export function ChatInput({ value, onChange, onSubmit, onStop, disabled, isGenerating, placeholder, isPlanMode, onTogglePlanMode, backgroundProcesses: _backgroundProcesses = [], onKillProcess: _onKillProcess, mode, availableCommands = [], contextUsage, selectedModel }: ChatInputProps) {
+export function ChatInput({ value, onChange, onSubmit, onStop, disabled, isGenerating, placeholder, isPlanMode, onTogglePlanMode, isGithubEnabled, onToggleGithub, canToggleGithub = true, backgroundProcesses: _backgroundProcesses = [], onKillProcess: _onKillProcess, mode, availableCommands = [], contextUsage, selectedModel }: ChatInputProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [attachedFiles, setAttachedFiles] = useState<FileAttachment[]>([]);
@@ -472,6 +475,33 @@ export function ChatInput({ value, onChange, onSubmit, onStop, disabled, isGener
                     }}
                   >
                     Plan Mode
+                  </button>
+                )}
+
+                {/* GitHub toggle button */}
+                {onToggleGithub && (
+                  <button
+                    onClick={onToggleGithub}
+                    className={`${isGithubEnabled ? 'send-button-active' : 'btn-icon'} rounded-lg flex items-center gap-1.5`}
+                    title={
+                      !canToggleGithub
+                        ? (isGithubEnabled ? "GitHub enabled (locked)" : "GitHub must be enabled before chat starts")
+                        : (isGithubEnabled ? "GitHub Enabled - Click to disable" : "Enable GitHub Access")
+                    }
+                    type="button"
+                    style={{
+                      fontSize: '0.75rem',
+                      fontWeight: 500,
+                      padding: '0.375rem 0.75rem',
+                      opacity: !canToggleGithub && !isGithubEnabled ? 0.5 : 1,
+                    }}
+                    disabled={!canToggleGithub && !isGithubEnabled}
+                  >
+                    <Github size={14} />
+                    <span>{isGithubEnabled ? 'GitHub' : 'GitHub'}</span>
+                    {isGithubEnabled && !canToggleGithub && (
+                      <span className="text-[10px] opacity-70">locked</span>
+                    )}
                   </button>
                 )}
 
