@@ -30,7 +30,9 @@
       "Bash(bun run build:*)",
       "Bash(cmd.exe /c \"taskkill /F /PID 28324 /PID 15500\")",
       "Bash(cmd.exe /c \"taskkill /F /PID 16948\")",
-      "Bash(bun run:*)"
+      "Bash(bun run:*)",
+      "Bash(del \"C:\\Users\\u005357\\Documents\\agent-girl-app\\github-token.json\")",
+      "Bash(dir \"C:\\Users\\u005357\\Documents\\agent-girl-app\"\" 2>nul || echo \"Directory not found \")"
     ],
     "deny": [],
     "ask": []

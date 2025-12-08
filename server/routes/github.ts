@@ -186,8 +186,18 @@ export async function handleGitHubRoutes(
       });
     }
 
-    // Generate OAuth URL with necessary scopes for full repo access
-    const scopes = ['repo', 'read:user', 'user:email'].join(' ');
+    // Generate OAuth URL with full access scopes
+    const scopes = [
+      'repo',           // Full control of private repositories
+      'user',           // Full access to user profile (includes user:email, user:follow, read:user)
+      'delete_repo',    // Delete repositories
+      'workflow',       // Update GitHub Action workflows
+      'write:packages', // Upload/publish packages
+      'read:packages',  // Download packages
+      'admin:org',      // Full control of orgs and teams
+      'gist',           // Create gists
+      'project'         // Full control of projects
+    ].join(' ');
     const state = Math.random().toString(36).substring(7);
 
     const authUrl = new URL('https://github.com/login/oauth/authorize');
