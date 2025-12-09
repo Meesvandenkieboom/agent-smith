@@ -426,19 +426,24 @@ export async function handleGitHubRoutes(
         if (stderr) console.log(stderr);
         console.log('✅ Repository updated');
       } else if (dirExists && dirContents.length > 0) {
-        // Directory exists with content but no .git - init and pull
-        console.log(`📂 Directory exists with content, initializing git...`);
-        const commands = [
-          `cd "${targetDir}"`,
-          `git init`,
-          `git remote add origin "${authenticatedUrl}"`,
-          `git fetch origin`,
-          `git checkout -t origin/main || git checkout -t origin/master`
-        ].join(' && ');
-        const { stdout, stderr } = await execAsync(commands, { timeout: 120000 });
+        // Directory exists with content but no .git - clear it and clone fresh
+        console.log(`📂 Directory exists with content, clearing and cloning fresh...`);
+
+        // Remove all existing files/folders in the directory
+        for (const item of dirContents) {
+          const itemPath = `${targetDir}/${item}`;
+          fs.rmSync(itemPath, { recursive: true, force: true });
+        }
+        console.log(`🗑️ Cleared ${dirContents.length} items from directory`);
+
+        // Now clone into the empty directory
+        const { stdout, stderr } = await execAsync(
+          `git clone "${authenticatedUrl}" "${targetDir}"`,
+          { timeout: 120000 }
+        );
         if (stdout) console.log(stdout);
         if (stderr) console.log(stderr);
-        console.log('✅ Repository initialized');
+        console.log('✅ Repository cloned successfully');
       } else {
         // Empty or non-existent directory - clone normally
         console.log(`🔄 Cloning repository to ${targetDir}...`);
