@@ -1,5 +1,5 @@
 /**
- * Agent Girl - Modern chat interface for Claude Agent SDK
+ * Agent Smith - Modern chat interface for Claude Agent SDK
  * Copyright (C) 2025 KenKai
  *
  * SPDX-License-Identifier: AGPL-3.0-or-later
@@ -82,8 +82,8 @@ function getWindowsUsername(): string | null {
 
 /**
  * Get the default working directory for agent operations
- * Cross-platform: ~/Documents/agent-girl (Mac/Linux) or C:\Users\{user}\Documents\agent-girl (Windows)
- * WSL: Uses Windows path (/mnt/c/Users/{user}/Documents/agent-girl)
+ * Cross-platform: ~/Documents/agent-smith (Mac/Linux) or C:\Users\{user}\Documents\agent-smith (Windows)
+ * WSL: Uses Windows path (/mnt/c/Users/{user}/Documents/agent-smith)
  */
 export function getDefaultWorkingDirectory(): string {
   let homeDir = os.homedir();
@@ -97,7 +97,7 @@ export function getDefaultWorkingDirectory(): string {
     }
   }
 
-  const defaultDir = path.join(homeDir, 'Documents', 'agent-girl');
+  const defaultDir = path.join(homeDir, 'Documents', 'agent-smith');
 
   // Startup logs are now consolidated in server.ts
   // console.log('🏠 Platform:', os.platform());
@@ -109,11 +109,11 @@ export function getDefaultWorkingDirectory(): string {
 
 /**
  * Get the app data directory for storing database and app files
- * Cross-platform: ~/Documents/agent-girl-app
+ * Cross-platform: ~/Documents/agent-smith-app
  */
 export function getAppDataDirectory(): string {
   const homeDir = os.homedir();
-  const appDataDir = path.join(homeDir, 'Documents', 'agent-girl-app');
+  const appDataDir = path.join(homeDir, 'Documents', 'agent-smith-app');
 
   return appDataDir;
 }

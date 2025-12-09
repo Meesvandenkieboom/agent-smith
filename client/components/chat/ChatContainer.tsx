@@ -1,5 +1,5 @@
 /**
- * Agent Girl - Modern chat interface for Claude Agent SDK
+ * Agent Smith - Modern chat interface for Claude Agent SDK
  * Copyright (C) 2025 KenKai
  *
  * SPDX-License-Identifier: AGPL-3.0-or-later
@@ -1008,7 +1008,8 @@ export function ChatContainer() {
       // Create new session if none exists
       let sessionId = currentSessionId;
       if (!sessionId) {
-        const newSession = await sessionAPI.createSession(undefined, mode || 'general');
+        // Pass GitHub repo if selected (selectedRepo.name is the full_name like "owner/repo")
+        const newSession = await sessionAPI.createSession(undefined, mode || 'general', selectedRepo?.name);
         if (!newSession) {
           // Error already shown by sessionAPI
           return;
@@ -1018,7 +1019,7 @@ export function ChatContainer() {
 
         // Store mode immediately for UI display
         setCurrentSessionMode(newSession.mode);
-        console.log('🎭 Session created with mode:', newSession.mode, '(requested:', mode, ')');
+        console.log('🎭 Session created with mode:', newSession.mode, '(requested:', mode, ')', selectedRepo ? `[GitHub: ${selectedRepo.name}]` : '');
 
         // Load slash commands for new session
         try {
@@ -1035,6 +1036,11 @@ export function ChatContainer() {
         // Apply current permission mode to new session
         const permissionMode = isPlanMode ? 'plan' : 'bypassPermissions';
         await sessionAPI.updatePermissionMode(sessionId, permissionMode);
+
+        // Clear selectedRepo after session creation (it's now stored in the session)
+        if (selectedRepo) {
+          setSelectedRepo(null);
+        }
 
         // Update state and load sessions
         setCurrentSessionId(sessionId);
@@ -1202,7 +1208,7 @@ export function ChatContainer() {
                     {!isSidebarOpen && (
                       <img
                         src="/client/agent-boy.svg"
-                        alt="Agent Mees"
+                        alt="Agent Smith"
                         className="header-icon"
                         loading="eager"
                         onError={(e) => {
@@ -1215,7 +1221,7 @@ export function ChatContainer() {
                       />
                     )}
                     <div className="header-title text-gradient">
-                      Agent Mees
+                      Agent Smith
                     </div>
                     {/* Model Selector */}
                     <ModelSelector

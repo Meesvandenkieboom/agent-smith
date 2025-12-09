@@ -7,7 +7,7 @@ const args = process.argv.slice(2);
 const command = args[0];
 
 async function handleLogin() {
-  console.log('\n🔐 Agent Girl - Claude OAuth Login\n');
+  console.log('\n🔐 Agent Smith - Claude OAuth Login\n');
 
   // Check if already logged in
   const alreadyLoggedIn = await isLoggedIn();
@@ -79,7 +79,7 @@ async function handleLogin() {
 }
 
 async function handleLogout() {
-  console.log('\n👋 Agent Girl - Claude OAuth Logout\n');
+  console.log('\n👋 Agent Smith - Claude OAuth Logout\n');
 
   const loggedIn = await isLoggedIn();
   if (!loggedIn) {
@@ -107,7 +107,7 @@ async function handleLogout() {
 }
 
 async function handleStatus() {
-  console.log('\n📊 Agent Girl - Auth Status\n');
+  console.log('\n📊 Agent Smith - Auth Status\n');
 
   const loggedIn = await isLoggedIn();
 
@@ -130,7 +130,7 @@ async function handleStatus() {
 
 function showHelp() {
   console.log(`
-🤖 Agent Girl - OAuth Authentication CLI
+🤖 Agent Smith - OAuth Authentication CLI
 
 Commands:
   --login        Log in with Claude Pro/Max subscription (OAuth)
@@ -144,7 +144,7 @@ Examples:
   bun run cli.ts --status
 
 Note: This CLI is for OAuth authentication only.
-      Use 'agent-girl' command to launch the app (standalone binary).
+      Use 'agent-smith' command to launch the app (standalone binary).
 `);
 }
 

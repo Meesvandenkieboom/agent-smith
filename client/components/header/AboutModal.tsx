@@ -1,5 +1,5 @@
 /**
- * Agent Girl - Modern chat interface for Claude Agent SDK
+ * Agent Smith - Modern chat interface for Claude Agent SDK
  * Copyright (C) 2025 KenKai
  *
  * SPDX-License-Identifier: AGPL-3.0-or-later
@@ -120,7 +120,7 @@ export function AboutModal({ onClose }: AboutModalProps) {
               margin: 0,
             }}
           >
-            About Agent Girl
+            About Agent Smith
           </h2>
           <button
             onClick={onClose}
@@ -176,7 +176,7 @@ export function AboutModal({ onClose }: AboutModalProps) {
                 lineHeight: '1.5',
               }}
             >
-              Agent Girl is a modern AI chat interface powered by the Claude Agent SDK,
+              Agent Smith is a modern AI chat interface powered by the Claude Agent SDK,
               designed to provide seamless conversations with advanced AI capabilities.
             </p>
           </div>

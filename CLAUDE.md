@@ -1,4 +1,4 @@
-# Agent Girl
+# Agent Smith
 
 A desktop-first chat interface for Claude Agent SDK with real-time streaming, persistent sessions, and specialized sub-agents, running locally with full file system access.
 

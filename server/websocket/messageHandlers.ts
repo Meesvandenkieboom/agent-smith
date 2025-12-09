@@ -292,7 +292,16 @@ async function handleChatMessage(
 
     // Build query options with provider-specific system prompt (including agent list)
     // Add working directory context to system prompt AND all agent prompts
-    const baseSystemPrompt = getSystemPrompt(providerType, AGENT_REGISTRY, userConfig, timezone as string | undefined, session.mode);
+    // Pass GitHub repo info if connected (enables git workflow instructions)
+    const baseSystemPrompt = getSystemPrompt(
+      providerType,
+      AGENT_REGISTRY,
+      userConfig,
+      timezone as string | undefined,
+      session.mode,
+      session.github_repo,  // GitHub repo (e.g., "owner/repo") if connected
+      workingDir            // Working directory for git commands
+    );
     const systemPromptWithContext = `${baseSystemPrompt}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

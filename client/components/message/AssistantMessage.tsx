@@ -1,5 +1,5 @@
 /**
- * Agent Girl - Modern chat interface for Claude Agent SDK
+ * Agent Smith - Modern chat interface for Claude Agent SDK
  * Copyright (C) 2025 KenKai
  *
  * SPDX-License-Identifier: AGPL-3.0-or-later
@@ -1786,11 +1786,11 @@ export function AssistantMessage({ message }: AssistantMessageProps) {
             <img
               src="/client/agent-boy.svg"
               className="message-assistant-avatar"
-              alt="Agent Girl"
+              alt="Agent Smith"
             />
             <div className="message-assistant-name-container">
               <span className="message-assistant-name">
-                {message.metadata?.model || 'Agent Girl'}
+                {message.metadata?.model || 'Agent Smith'}
               </span>
               <span className="message-assistant-timestamp invisible group-hover:visible">
                 {formatTimestamp(message.timestamp)}
@@ -1807,7 +1807,7 @@ export function AssistantMessage({ message }: AssistantMessageProps) {
                 } else if (block.type === 'tool_use') {
                   return <ToolUseComponent key={index} toolUse={block} />;
                 } else if (block.type === 'thinking') {
-                  return <ThinkingBlock key={index} title="Agent Girl's thoughts..." content={block.thinking} />;
+                  return <ThinkingBlock key={index} title="Agent Smith's thoughts..." content={block.thinking} />;
                 } else if (block.type === 'long_running_command') {
                   return <LongRunningCommandComponent key={index} command={block} />;
                 }

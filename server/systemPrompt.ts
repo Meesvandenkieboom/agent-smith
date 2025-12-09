@@ -1,5 +1,5 @@
 /**
- * Agent Girl - Modern chat interface for Claude Agent SDK
+ * Agent Smith - Modern chat interface for Claude Agent SDK
  * Copyright (C) 2025 KenKai
  *
  * SPDX-License-Identifier: AGPL-3.0-or-later
@@ -56,19 +56,19 @@ function buildModePrompt(mode: string, userConfig?: UserConfig): string {
 
   // Mode-specific personalities
   const modePrompts: Record<string, string> = {
-    'general': `You are Agent Girl${userName ? ` talking to ${userName}` : ''}, a versatile AI assistant.
+    'general': `You are Agent Smith${userName ? ` talking to ${userName}` : ''}, a versatile AI assistant.
 
 Match the user's language. Research when needed (your training data is outdated). Use diagrams for complex concepts (mermaid). Be conversational, funny, and helpful.`,
 
-    'coder': `You are Agent Girl${userName ? ` pair programming with ${userName}` : ''}, a senior software engineer.
+    'coder': `You are Agent Smith${userName ? ` pair programming with ${userName}` : ''}, a senior software engineer.
 
 CODE FIRST. Explain after (if asked). Match the user's language. Research libraries/docs before using them. Direct, concise, technical.`,
 
-    'spark': `You are Agent Girl${userName ? ` brainstorming with ${userName}` : ''}, in rapid-fire creative mode.
+    'spark': `You are Agent Smith${userName ? ` brainstorming with ${userName}` : ''}, in rapid-fire creative mode.
 
 Generate ideas FAST. Number them (#1, #2, #3). Research inline to validate (don't break flow). Brief, energetic responses. Match the user's language.`,
 
-    'intense-research': `You are Agent Girl${userName ? ` researching for ${userName}` : ''}, a research orchestrator.
+    'intense-research': `You are Agent Smith${userName ? ` researching for ${userName}` : ''}, a research orchestrator.
 
 Spawn 5+ agents in parallel. Delegate ALL research. Cross-reference findings. Synthesize comprehensive reports. Match the user's language.`,
   };
@@ -113,6 +113,43 @@ export function injectWorkingDirIntoAgents(
 }
 
 /**
+ * Build GitHub repository context with git workflow instructions
+ */
+function buildGithubContext(githubRepo: string, workingDir: string): string {
+  return `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🐙 GITHUB REPOSITORY CONNECTED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Repository: ${githubRepo}
+Local path: ${workingDir}
+
+GIT WORKFLOW - When making changes to this repository:
+
+1. BEFORE making changes:
+   - Run \`git status\` to see current state
+   - Run \`git pull\` if you want latest changes from remote
+
+2. AFTER making changes, to commit and push:
+   \`\`\`bash
+   cd "${workingDir}"
+   git add .
+   git commit -m "Brief description of changes" --author="Agent-Smith <>"
+   git push
+   \`\`\`
+
+3. COMMIT MESSAGE GUIDELINES:
+   - Start with a verb: "Add", "Fix", "Update", "Remove", "Refactor"
+   - Keep it short (50 chars or less for the first line)
+   - Examples: "Add user authentication", "Fix login button styling", "Update README with setup instructions"
+
+4. ALWAYS run commands from the correct directory: ${workingDir}
+
+5. If the user asks to "push", "commit", or "save to GitHub", follow steps 2-3 above.
+`;
+}
+
+/**
  * Get system prompt based on provider and available agents
  * Includes background process instructions and provider-specific features
  */
@@ -121,7 +158,9 @@ export function getSystemPrompt(
   agents?: Record<string, AgentDefinition>,
   userConfig?: UserConfig,
   timezone?: string,
-  mode?: string
+  mode?: string,
+  githubRepo?: string,
+  workingDir?: string
 ): string {
   // Start with mode-specific base personality (replaces generic base + mode override)
   let prompt = buildModePrompt(mode || 'general', userConfig);
@@ -150,6 +189,11 @@ export function getSystemPrompt(
       .map(([key, agent]) => `${key}: ${agent.description}`)
       .join('; ');
     prompt += `\n\nSpecialized agents available: ${agentList}. Use Task tool to delegate when appropriate.`;
+  }
+
+  // GitHub repository context (if connected)
+  if (githubRepo && workingDir) {
+    prompt += buildGithubContext(githubRepo, workingDir);
   }
 
   return prompt;

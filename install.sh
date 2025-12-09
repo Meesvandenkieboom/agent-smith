@@ -2,7 +2,7 @@
 set -e
 
 # =============================================================================
-# Agent Mees Installer - Production Grade (Source Install)
+# Agent Smith Installer - Production Grade (Source Install)
 # =============================================================================
 # Clones from source, builds, and installs with full error handling
 # =============================================================================
@@ -16,8 +16,8 @@ CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 # Configuration
-REPO="Meesvandenkieboom/agent-mees"
-APP_NAME="agent-mees"
+REPO="Meesvandenkieboom/agent-smith"
+APP_NAME="agent-smith"
 BRANCH="main"
 MIN_DISK_SPACE_MB=200
 GITHUB_REPO_URL="https://github.com/${REPO}.git"
@@ -182,20 +182,20 @@ detect_platform() {
     Darwin)
       OS_NAME="macOS"
       OS_PREFIX="macos"
-      INSTALL_DIR="$HOME/Applications/agent-mees-app"
+      INSTALL_DIR="$HOME/Applications/agent-smith-app"
       ;;
     Linux)
       OS_NAME="Linux"
       OS_PREFIX="linux"
-      INSTALL_DIR="$HOME/.local/share/agent-mees-app"
+      INSTALL_DIR="$HOME/.local/share/agent-smith-app"
       ;;
     MINGW*|MSYS*|CYGWIN*)
       OS_NAME="Windows (Git Bash)"
       OS_PREFIX="windows"
       if [[ -n "$LOCALAPPDATA" ]]; then
-        INSTALL_DIR="$LOCALAPPDATA/Programs/agent-mees-app"
+        INSTALL_DIR="$LOCALAPPDATA/Programs/agent-smith-app"
       else
-        INSTALL_DIR="$USERPROFILE/AppData/Local/Programs/agent-mees-app"
+        INSTALL_DIR="$USERPROFILE/AppData/Local/Programs/agent-smith-app"
       fi
       ;;
     *)
@@ -242,7 +242,7 @@ check_existing_installation() {
     # Check if there's a running process
     if [[ "$OS_PREFIX" == "macos" || "$OS_PREFIX" == "linux" ]]; then
       if lsof -ti:3001 > /dev/null 2>&1; then
-        log_warning "Agent Mees appears to be running (port 3001 in use)"
+        log_warning "Agent Smith appears to be running (port 3001 in use)"
         echo ""
         read -p "Stop the running instance and upgrade? [y/N]: " stop_running < /dev/tty
 
@@ -252,7 +252,7 @@ check_existing_installation() {
           log_success "Stopped running instance"
         else
           fatal_error "Installation cancelled" \
-            "Stop Agent Mees manually and try again"
+            "Stop Agent Smith manually and try again"
         fi
       fi
     fi
@@ -283,9 +283,9 @@ check_existing_installation() {
 # =============================================================================
 
 clone_repository() {
-  log_section "Cloning Agent Mees from GitHub"
+  log_section "Cloning Agent Smith from GitHub"
 
-  CLONE_DIR="/tmp/agent-mees-clone-$$"
+  CLONE_DIR="/tmp/agent-smith-clone-$$"
   TEMP_DIRS+=("$CLONE_DIR")
 
   log_info "Cloning repository..."
@@ -338,7 +338,7 @@ install_bun() {
 # =============================================================================
 
 build_application() {
-  log_section "Building Agent Mees"
+  log_section "Building Agent Smith"
 
   cd "$CLONE_DIR"
 
@@ -391,7 +391,7 @@ build_application() {
 # =============================================================================
 
 install_application() {
-  log_section "Installing Agent Mees"
+  log_section "Installing Agent Smith"
 
   # Create install directory
   log_info "Creating installation directory..."
@@ -561,7 +561,7 @@ EOF
     5|*)
       # Skip
       log_warning "Skipping API configuration"
-      echo "You'll need to edit ${YELLOW}$INSTALL_DIR/.env${NC} before running Agent Mees"
+      echo "You'll need to edit ${YELLOW}$INSTALL_DIR/.env${NC} before running Agent Smith"
 
       # Create template .env
       cat > "$INSTALL_DIR/.env" << EOF
@@ -597,7 +597,7 @@ configure_personalization() {
 
   log_section "Personalization (Optional)"
 
-  echo "Agent Mees can personalize your experience with your name."
+  echo "Agent Smith can personalize your experience with your name."
   echo ""
   read -p "Enter your name (or press Enter to skip): " user_name < /dev/tty
 
@@ -719,14 +719,14 @@ cd \"$INSTALL_DIR\" && \"$BUN_PATH\" run server/server.ts \"\$@\"
 show_success_message() {
   log_section "Installation Successful! 🎉"
 
-  echo -e "${GREEN}Agent Mees has been installed successfully!${NC}"
+  echo -e "${GREEN}Agent Smith has been installed successfully!${NC}"
   echo ""
   echo -e "${BLUE}📍 Installation Location:${NC}"
   echo -e "   $INSTALL_DIR"
   echo ""
 
   # Platform-specific launch instructions
-  echo -e "${BLUE}🚀 How to Start Agent Mees:${NC}"
+  echo -e "${BLUE}🚀 How to Start Agent Smith:${NC}"
   echo ""
 
   if [[ "$OS_PREFIX" == "windows" ]]; then
@@ -781,7 +781,7 @@ main() {
   # Print banner
   echo ""
   echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-  echo -e "${CYAN}   Agent Mees Installer${NC}"
+  echo -e "${CYAN}   Agent Smith Installer${NC}"
   echo -e "${CYAN}   Production-Grade Installation from Source${NC}"
   echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
   echo ""

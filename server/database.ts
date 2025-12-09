@@ -1,5 +1,5 @@
 /**
- * Agent Girl - Modern chat interface for Claude Agent SDK
+ * Agent Smith - Modern chat interface for Claude Agent SDK
  * Copyright (C) 2025 KenKai
  *
  * SPDX-License-Identifier: AGPL-3.0-or-later
@@ -39,6 +39,7 @@ export interface Session {
   context_input_tokens?: number;
   context_window?: number;
   context_percentage?: number;
+  github_repo?: string; // GitHub repo full_name (e.g., "owner/repo") when connected
 }
 
 export interface SessionMessage {
@@ -149,6 +150,9 @@ class SessionDatabase {
 
     // Migration: Add context usage columns if they don't exist
     this.migrateContextUsage();
+
+    // Migration: Add github_repo column if it doesn't exist
+    this.migrateGithubRepo();
   }
 
   private migrateWorkingDirectory() {
@@ -328,8 +332,36 @@ class SessionDatabase {
     }
   }
 
+  private migrateGithubRepo() {
+    try {
+      // Check if github_repo column exists
+      const columns = this.db.query<{ name: string }, []>(
+        "PRAGMA table_info(sessions)"
+      ).all();
+
+      const hasGithubRepo = columns.some(col => col.name === 'github_repo');
+
+      if (!hasGithubRepo) {
+        console.log('📦 Migrating database: Adding github_repo column');
+
+        // Add the column (nullable, as it's only set for GitHub-connected sessions)
+        this.db.run(`
+          ALTER TABLE sessions
+          ADD COLUMN github_repo TEXT
+        `);
+
+        console.log('✅ github_repo column added successfully');
+      } else {
+        console.log('✅ github_repo column already exists');
+      }
+    } catch (error) {
+      console.error('❌ Database migration failed:', error);
+      throw error;
+    }
+  }
+
   // Session operations
-  createSession(title: string = "New Chat", workingDirectory?: string, mode: 'general' | 'coder' | 'intense-research' | 'spark' = 'general'): Session {
+  createSession(title: string = "New Chat", workingDirectory?: string, mode: 'general' | 'coder' | 'intense-research' | 'spark' = 'general', githubRepo?: string): Session {
     const id = randomUUID();
     const now = new Date().toISOString();
 
@@ -348,13 +380,13 @@ class SessionDatabase {
         finalWorkingDir = expandedPath;
       }
     } else {
-      // Auto-generate chat folder: ~/Documents/agent-girl/chat-{short-id}/
+      // Auto-generate chat folder: ~/Documents/agent-smith/chat-{short-id}/
       finalWorkingDir = this.createChatDirectory(id);
     }
 
     this.db.run(
-      "INSERT INTO sessions (id, title, created_at, updated_at, working_directory, permission_mode, mode) VALUES (?, ?, ?, ?, ?, ?, ?)",
-      [id, title, now, now, finalWorkingDir, 'bypassPermissions', mode]
+      "INSERT INTO sessions (id, title, created_at, updated_at, working_directory, permission_mode, mode, github_repo) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+      [id, title, now, now, finalWorkingDir, 'bypassPermissions', mode, githubRepo || null]
     );
 
     // Setup slash commands for this session
@@ -369,11 +401,12 @@ class SessionDatabase {
       working_directory: finalWorkingDir,
       permission_mode: 'bypassPermissions',
       mode,
+      github_repo: githubRepo,
     };
   }
 
   private createChatDirectory(sessionId: string): string {
-    // Create unique chat folder: ~/Documents/agent-girl/chat-{first-8-chars}/
+    // Create unique chat folder: ~/Documents/agent-smith/chat-{first-8-chars}/
     const shortId = sessionId.substring(0, 8);
     const baseDir = getDefaultWorkingDirectory();
     const chatDir = path.join(baseDir, `chat-${shortId}`);
@@ -409,6 +442,7 @@ class SessionDatabase {
           s.context_input_tokens,
           s.context_window,
           s.context_percentage,
+          s.github_repo,
           COUNT(m.id) as message_count
         FROM sessions s
         LEFT JOIN messages m ON s.id = m.session_id
@@ -452,6 +486,7 @@ class SessionDatabase {
           s.context_input_tokens,
           s.context_window,
           s.context_percentage,
+          s.github_repo,
           COUNT(m.id) as message_count
         FROM sessions s
         LEFT JOIN messages m ON s.id = m.session_id
@@ -552,6 +587,27 @@ class SessionDatabase {
       return success;
     } catch (error) {
       console.error('❌ Failed to update context usage:', error);
+      return false;
+    }
+  }
+
+  updateGithubRepo(sessionId: string, githubRepo: string | null): boolean {
+    try {
+      const result = this.db.run(
+        "UPDATE sessions SET github_repo = ?, updated_at = ? WHERE id = ?",
+        [githubRepo, new Date().toISOString(), sessionId]
+      );
+
+      const success = result.changes > 0;
+      if (success) {
+        console.log(`✅ GitHub repo ${githubRepo ? 'set to ' + githubRepo : 'cleared'} for session ${sessionId.substring(0, 8)}`);
+      } else {
+        console.warn('⚠️  No session found to update GitHub repo');
+      }
+
+      return success;
+    } catch (error) {
+      console.error('❌ Failed to update GitHub repo:', error);
       return false;
     }
   }

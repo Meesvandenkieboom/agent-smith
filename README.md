@@ -1,6 +1,6 @@
 <div align="center">
 
-# Agent Girl
+# Agent Smith
 
 **A modern chat interface powered by the Claude Agent SDK**
 
@@ -10,7 +10,7 @@
 [![Bun](https://img.shields.io/badge/Bun-Latest-black?logo=bun)](https://bun.sh/)
 [![Claude](https://img.shields.io/badge/Claude-Sonnet_4.5-8B5CF6)](https://www.anthropic.com/claude)
 
-<img src="agentgirl.png" alt="Agent Girl" width="600" />
+<img src="agentsmith.png" alt="Agent Smith" width="600" />
 
 
 Seamless AI conversations with real-time streaming, session management, and specialized sub-agents. Built with React, TypeScript, and Bun for blazing-fast performance.
@@ -39,7 +39,7 @@ Seamless AI conversations with real-time streaming, session management, and spec
 
 ## 🌟 Overview
 
-Agent Girl is a **desktop-first chat interface** that brings the power of Anthropic's Claude Agent SDK to your local machine. Unlike web-based alternatives, Agent Girl runs entirely on your computer with full file system access, persistent sessions, and no data leaving your machine except API calls to Claude.
+Agent Smith is a **desktop-first chat interface** that brings the power of Anthropic's Claude Agent SDK to your local machine. Unlike web-based alternatives, Agent Smith runs entirely on your computer with full file system access, persistent sessions, and no data leaving your machine except API calls to Claude.
 
 **Perfect for:**
 - 🔧 Developers needing AI assistance with code
@@ -95,7 +95,7 @@ Agent Girl is a **desktop-first chat interface** that brings the power of Anthro
 **Works on macOS, Linux, and Windows (Git Bash/WSL):**
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/KenKaiii/agent-girl/master/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Meesvandenkieboom/agent-smith/main/install.sh | bash
 ```
 
 **What it does:**
@@ -116,7 +116,7 @@ curl -fsSL https://raw.githubusercontent.com/KenKaiii/agent-girl/master/install.
 **For native Windows PowerShell:**
 
 ```powershell
-iwr -useb https://raw.githubusercontent.com/KenKaiii/agent-girl/master/install.ps1 | iex
+iwr -useb https://raw.githubusercontent.com/Meesvandenkieboom/agent-smith/main/install.ps1 | iex
 ```
 
 Provides better Windows integration with automatic PATH setup.
@@ -124,13 +124,13 @@ Provides better Windows integration with automatic PATH setup.
 ### Manual Download
 
 **macOS:**
-- [Apple Silicon (M1/M2/M3/M4)](https://github.com/KenKaiii/agent-girl/releases/latest/download/agent-girl-macos-arm64.zip)
-- [Intel (x86_64)](https://github.com/KenKaiii/agent-girl/releases/latest/download/agent-girl-macos-intel.zip)
+- [Apple Silicon (M1/M2/M3/M4)](https://github.com/Meesvandenkieboom/agent-smith/releases/latest/download/agent-smith-macos-arm64.zip)
+- [Intel (x86_64)](https://github.com/Meesvandenkieboom/agent-smith/releases/latest/download/agent-smith-macos-intel.zip)
 
 **Windows:**
-- [Windows x64](https://github.com/KenKaiii/agent-girl/releases/latest/download/agent-girl-windows-x64.zip)
+- [Windows x64](https://github.com/Meesvandenkieboom/agent-smith/releases/latest/download/agent-smith-windows-x64.zip)
 
-**Browse all releases:** [https://github.com/KenKaiii/agent-girl/releases](https://github.com/KenKaiii/agent-girl/releases)
+**Browse all releases:** [https://github.com/Meesvandenkieboom/agent-smith/releases](https://github.com/Meesvandenkieboom/agent-smith/releases)
 
 ---
 
@@ -142,10 +142,10 @@ Before first run, add your Anthropic API key:
 
 ```bash
 # macOS/Linux
-nano ~/Applications/agent-girl-app/.env
+nano ~/Applications/agent-smith-app/.env
 
 # Windows
-notepad %USERPROFILE%\Documents\agent-girl-app\.env
+notepad %USERPROFILE%\Documents\agent-smith-app\.env
 ```
 
 Replace `sk-ant-your-key-here` with your actual key from [console.anthropic.com](https://console.anthropic.com/).
@@ -154,15 +154,15 @@ Replace `sk-ant-your-key-here` with your actual key from [console.anthropic.com]
 
 **macOS:**
 ```bash
-agent-girl
+agent-smith
 ```
 
 **Windows:**
-- Double-click `agent-girl.exe` in the install directory
+- Double-click `agent-smith.exe` in the install directory
 
 **From Finder/Explorer:**
 1. Navigate to install directory
-2. Double-click the `agent-girl` executable
+2. Double-click the `agent-smith` executable
 
 The app starts at **http://localhost:3001** and opens automatically in your browser.
 
@@ -220,7 +220,7 @@ Sub-agent activity displays nested under parent tasks for clarity.
 
 Each session has an isolated working directory:
 
-- **Default:** `~/Documents/agent-girl-app/{session-id}/`
+- **Default:** `~/Documents/agent-smith-app/{session-id}/`
 - **Custom:** Choose any directory when creating
 - **Safety:** File operations scoped to this directory only
 
@@ -238,8 +238,8 @@ Each session has an isolated working directory:
 
 ```bash
 # Clone repository
-git clone https://github.com/KenKaiii/agent-girl.git
-cd agent-girl
+git clone https://github.com/Meesvandenkieboom/agent-smith.git
+cd agent-smith
 
 # Install dependencies
 bun install
@@ -304,7 +304,7 @@ bun test --watch
 ### Project Structure
 
 ```
-agent-girl/
+agent-smith/
 ├── client/                 # React frontend
 │   ├── components/
 │   │   ├── chat/          # ChatContainer, MessageList, ChatInput
@@ -405,7 +405,7 @@ taskkill /PID <PID> /F
 
 ```bash
 # macOS/Linux
-rm -rf ~/Documents/agent-girl-app/
+rm -rf ~/Documents/agent-smith-app/
 
 # Development
 rm -rf data/ && mkdir data
@@ -414,7 +414,7 @@ rm -rf data/ && mkdir data
 ### macOS Security Warnings
 
 **First run:**
-1. Right-click `agent-girl` → **"Open"**
+1. Right-click `agent-smith` → **"Open"**
 2. Click **"Open"** in security dialog
 
 Or via System Preferences:
@@ -459,7 +459,7 @@ This project is licensed under the **GNU Affero General Public License v3.0 (AGP
 
 See the [LICENSE](LICENSE) file for full terms.
 
-**TL;DR:** You can use, modify, and distribute Agent Girl freely, but if you modify it and run it as a public service, you must share your source code under the same license.
+**TL;DR:** You can use, modify, and distribute Agent Smith freely, but if you modify it and run it as a public service, you must share your source code under the same license.
 
 ---
 
@@ -483,8 +483,8 @@ See the [LICENSE](LICENSE) file for full terms.
 
 ## 📞 Support
 
-- **GitHub Issues**: [Report bugs](https://github.com/KenKaiii/agent-girl/issues)
-- **GitHub Discussions**: [Ask questions](https://github.com/KenKaiii/agent-girl/discussions)
+- **GitHub Issues**: [Report bugs](https://github.com/Meesvandenkieboom/agent-smith/issues)
+- **GitHub Discussions**: [Ask questions](https://github.com/Meesvandenkieboom/agent-smith/discussions)
 - **YouTube**: [@kenkaidoesai](https://www.youtube.com/@kenkaidoesai)
 - **Skool Community**: [skool.com/kenkai](https://www.skool.com/kenkai)
 
@@ -496,6 +496,6 @@ See the [LICENSE](LICENSE) file for full terms.
 
 Copyright © 2025 KenKai • Licensed under AGPL-3.0
 
-[⬆ Back to Top](#agent-girl)
+[⬆ Back to Top](#agent-smith)
 
 </div>

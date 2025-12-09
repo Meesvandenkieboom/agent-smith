@@ -1,5 +1,5 @@
 /**
- * Agent Girl - Modern chat interface for Claude Agent SDK
+ * Agent Smith - Modern chat interface for Claude Agent SDK
  * Copyright (C) 2025 KenKai
  *
  * SPDX-License-Identifier: AGPL-3.0-or-later
@@ -34,6 +34,7 @@ export interface Session {
   context_input_tokens?: number;
   context_window?: number;
   context_percentage?: number;
+  github_repo?: string; // GitHub repo full_name (e.g., "owner/repo") when connected
 }
 
 export interface SessionMessage {
@@ -117,7 +118,7 @@ export function useSessionAPI() {
   /**
    * Create a new session
    */
-  const createSession = useCallback(async (title?: string, mode?: 'general' | 'coder' | 'intense-research' | 'spark'): Promise<Session | null> => {
+  const createSession = useCallback(async (title?: string, mode?: 'general' | 'coder' | 'intense-research' | 'spark', githubRepo?: string): Promise<Session | null> => {
     setIsLoading(true);
     setError(null);
 
@@ -127,7 +128,7 @@ export function useSessionAPI() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ title: title || 'New Chat', mode: mode || 'general' }),
+        body: JSON.stringify({ title: title || 'New Chat', mode: mode || 'general', githubRepo }),
       });
 
       if (!response.ok) {
@@ -305,6 +306,40 @@ export function useSessionAPI() {
     }
   }, []);
 
+  /**
+   * Update GitHub repo for a session
+   */
+  const updateGithubRepo = useCallback(async (
+    sessionId: string,
+    githubRepo: string | null
+  ): Promise<{ success: boolean; session?: Session; error?: string }> => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`${API_BASE}/sessions/${sessionId}/github`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ githubRepo }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json() as { success: boolean; session?: Session; error?: string };
+      return result;
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Failed to update GitHub repo';
+      setError(errorMsg);
+      return { success: false, error: errorMsg };
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   return {
     isLoading,
     error,
@@ -316,5 +351,6 @@ export function useSessionAPI() {
     updateWorkingDirectory,
     validateDirectory,
     updatePermissionMode,
+    updateGithubRepo,
   };
 }

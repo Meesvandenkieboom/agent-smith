@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 /**
- * Agent Mees - Global CLI launcher
+ * Agent Smith - Global CLI launcher
  *
- * This script allows running agent-mees from anywhere via:
- *   agent-mees
- *   agent-mees --setup
- *   agent-mees --login
- *   agent-mees --logout
- *   agent-mees --status
+ * This script allows running agent-smith from anywhere via:
+ *   agent-smith
+ *   agent-smith --setup
+ *   agent-smith --login
+ *   agent-smith --logout
+ *   agent-smith --status
  */
 
 import { spawn } from 'child_process';
@@ -39,7 +39,7 @@ if (!bunAvailable) {
 const args = process.argv.slice(2);
 const serverPath = join(projectRoot, 'server', 'server.ts');
 
-console.log('🚀 Starting Agent Mees...\n');
+console.log('🚀 Starting Agent Smith...\n');
 
 const proc = spawn('bun', ['run', serverPath, ...args], {
   cwd: projectRoot,

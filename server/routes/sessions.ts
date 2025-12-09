@@ -34,8 +34,8 @@ export async function handleSessionRoutes(
 
   // POST /api/sessions - Create new session
   if (url.pathname === '/api/sessions' && req.method === 'POST') {
-    const body = await req.json() as { title?: string; workingDirectory?: string; mode?: 'general' | 'coder' | 'intense-research' | 'spark' };
-    const session = sessionDb.createSession(body.title || 'New Chat', body.workingDirectory, body.mode || 'general');
+    const body = await req.json() as { title?: string; workingDirectory?: string; mode?: 'general' | 'coder' | 'intense-research' | 'spark'; githubRepo?: string };
+    const session = sessionDb.createSession(body.title || 'New Chat', body.workingDirectory, body.mode || 'general', body.githubRepo);
     return new Response(JSON.stringify(session), {
       headers: { 'Content-Type': 'application/json' },
     });
@@ -173,6 +173,41 @@ export async function handleSessionRoutes(
 
     if (success) {
       const session = sessionDb.getSession(sessionId);
+      return new Response(JSON.stringify({ success: true, session }), {
+        headers: { 'Content-Type': 'application/json' },
+      });
+    } else {
+      return new Response(JSON.stringify({ success: false, error: 'Session not found' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+  }
+
+  // PATCH /api/sessions/:id/github - Update GitHub repo
+  if (url.pathname.match(/^\/api\/sessions\/[^/]+\/github$/) && req.method === 'PATCH') {
+    const sessionId = url.pathname.split('/')[3];
+    const body = await req.json() as { githubRepo: string | null };
+
+    console.log('🐙 API: Update GitHub repo request:', {
+      sessionId,
+      githubRepo: body.githubRepo
+    });
+
+    const success = sessionDb.updateGithubRepo(sessionId, body.githubRepo);
+
+    if (success) {
+      const session = sessionDb.getSession(sessionId);
+
+      // Clear SDK session ID to force respawn with new system prompt
+      sessionDb.updateSdkSessionId(sessionId, null);
+
+      // Cleanup SDK stream to force respawn with updated GitHub context
+      sessionStreamManager.cleanupSession(sessionId, 'github_repo_changed');
+      activeQueries.delete(sessionId);
+
+      console.log(`🔄 SDK subprocess will restart with GitHub context on next message`);
+
       return new Response(JSON.stringify({ success: true, session }), {
         headers: { 'Content-Type': 'application/json' },
       });
