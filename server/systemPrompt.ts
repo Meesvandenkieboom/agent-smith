@@ -124,6 +124,8 @@ function buildGithubContext(githubRepo: string, workingDir: string): string {
 Repository: ${githubRepo}
 Local path: ${workingDir}
 
+✅ PUSH ACCESS ENABLED: Git credentials are automatically configured via the user's GitHub OAuth connection. You can push changes directly without authentication prompts.
+
 GIT WORKFLOW - When making changes to this repository:
 
 1. BEFORE making changes:
@@ -146,6 +148,11 @@ GIT WORKFLOW - When making changes to this repository:
 4. ALWAYS run commands from the correct directory: ${workingDir}
 
 5. If the user asks to "push", "commit", or "save to GitHub", follow steps 2-3 above.
+
+6. If git push fails with authentication errors, call the API to reconfigure credentials:
+   \`\`\`bash
+   curl -X POST http://localhost:3001/api/github/configure-credentials -H "Content-Type: application/json" -d '{"repoDir":"${workingDir}"}'
+   \`\`\`
 `;
 }
 

@@ -187,8 +187,9 @@ export async function handleGitHubRoutes(
     }
 
     // Generate OAuth URL with full access scopes
+    // The 'repo' scope includes push access to public and private repositories
     const scopes = [
-      'repo',           // Full control of private repositories
+      'repo',           // Full control of private repositories (includes push/pull)
       'user',           // Full access to user profile (includes user:email, user:follow, read:user)
       'delete_repo',    // Delete repositories
       'workflow',       // Update GitHub Action workflows
@@ -456,9 +457,17 @@ export async function handleGitHubRoutes(
         console.log('✅ Repository cloned successfully');
       }
 
+      // Configure git credentials for push access
+      try {
+        await configureGitCredentials(targetDir);
+      } catch (error) {
+        console.warn('Warning: Failed to configure git credentials:', error);
+        // Don't fail the whole operation if this fails
+      }
+
       return new Response(JSON.stringify({
         success: true,
-        message: 'Repository cloned successfully',
+        message: 'Repository cloned successfully (with push access configured)',
         path: targetDir
       }), {
         headers: { 'Content-Type': 'application/json' },
@@ -497,6 +506,75 @@ export async function handleGitHubRoutes(
     });
   }
 
+  // POST /api/github/configure-credentials - Configure git credentials for a repository
+  if (url.pathname === '/api/github/configure-credentials' && req.method === 'POST') {
+    const token = loadToken();
+    if (!token) {
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'Not connected to GitHub'
+      }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    try {
+      const body = await req.json() as { repoDir?: string; sessionId?: string };
+      let { repoDir } = body;
+      const { sessionId } = body;
+
+      // If sessionId is provided, look up the working directory
+      if (!repoDir && sessionId) {
+        const { sessionDb } = await import('../database');
+        const session = sessionDb.getSession(sessionId);
+        if (session) {
+          repoDir = session.working_directory;
+        }
+      }
+
+      if (!repoDir) {
+        return new Response(JSON.stringify({
+          success: false,
+          error: 'Missing repoDir or sessionId'
+        }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
+      // Check if it's a git repository
+      if (!fs.existsSync(path.join(repoDir, '.git'))) {
+        return new Response(JSON.stringify({
+          success: false,
+          error: 'Not a git repository'
+        }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
+      await configureGitCredentials(repoDir);
+
+      return new Response(JSON.stringify({
+        success: true,
+        message: 'Git credentials configured for push access'
+      }), {
+        headers: { 'Content-Type': 'application/json' },
+      });
+    } catch (error) {
+      console.error('Configure credentials error:', error);
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      return new Response(JSON.stringify({
+        success: false,
+        error: `Failed to configure git credentials: ${errorMsg}`
+      }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+  }
+
   // Route not handled by this module
   return undefined;
 }
@@ -515,4 +593,37 @@ export function getGitHubToken(): string | null {
  */
 export function isGitHubConnected(): boolean {
   return loadToken() !== null;
+}
+
+/**
+ * Configure git credentials for a repository directory
+ * This sets up git to use the GitHub OAuth token for push/pull operations
+ */
+export async function configureGitCredentials(repoDir: string): Promise<void> {
+  const token = loadToken();
+  if (!token) {
+    throw new Error('Not connected to GitHub');
+  }
+
+  const { exec } = await import('child_process');
+  const { promisify } = await import('util');
+  const execAsync = promisify(exec);
+
+  try {
+    // Set git config to use the token for this repository
+    // This uses the local config (--local) so it only affects this repo
+    await execAsync(`cd "${repoDir}" && git config --local credential.helper store`);
+
+    // Set the remote URL with embedded token for authentication
+    const { stdout: remoteUrl } = await execAsync(`cd "${repoDir}" && git remote get-url origin`);
+    const cleanUrl = remoteUrl.trim().replace(/https:\/\/(.*@)?github\.com\//, 'https://github.com/');
+    const authenticatedUrl = cleanUrl.replace('https://github.com/', `https://x-access-token:${token.access_token}@github.com/`);
+
+    await execAsync(`cd "${repoDir}" && git remote set-url origin "${authenticatedUrl}"`);
+
+    console.log('✅ Git credentials configured for push access');
+  } catch (error) {
+    console.error('Failed to configure git credentials:', error);
+    throw error;
+  }
 }
