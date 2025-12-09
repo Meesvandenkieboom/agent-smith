@@ -24,9 +24,10 @@ interface ThinkingBlockProps {
   title: string;
   content: string;
   defaultExpanded?: boolean;
+  isActive?: boolean;
 }
 
-export function ThinkingBlock({ title, content, defaultExpanded = false }: ThinkingBlockProps) {
+export function ThinkingBlock({ title, content, defaultExpanded = false, isActive = false }: ThinkingBlockProps) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
   return (
@@ -38,10 +39,14 @@ export function ThinkingBlock({ title, content, defaultExpanded = false }: Think
         aria-expanded={isExpanded}
       >
         <div className="flex overflow-hidden flex-1 gap-2 items-center whitespace-nowrap">
-          <div className="thinking-indicator">
-            <div className="thinking-dot" />
-          </div>
-          <span className="text-sm font-medium leading-6 text-gradient">{title}</span>
+          {isActive ? (
+            <div className="thinking-indicator">
+              <div className="thinking-dot" />
+            </div>
+          ) : (
+            <div className="w-4 h-4 flex-shrink-0" />
+          )}
+          <span className={`text-sm font-medium leading-6 ${isActive ? 'text-gradient' : 'text-white'}`}>{title}</span>
         </div>
         <div className="flex gap-1 items-center whitespace-nowrap">
           <div

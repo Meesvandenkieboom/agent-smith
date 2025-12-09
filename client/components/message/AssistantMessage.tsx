@@ -1807,7 +1807,10 @@ export function AssistantMessage({ message }: AssistantMessageProps) {
                 } else if (block.type === 'tool_use') {
                   return <ToolUseComponent key={index} toolUse={block} />;
                 } else if (block.type === 'thinking') {
-                  return <ThinkingBlock key={index} title="Agent Smith's thoughts..." content={block.thinking} />;
+                  // Find the last thinking block index
+                  const lastThinkingIndex = message.content.map((b, i) => b.type === 'thinking' ? i : -1).filter(i => i !== -1).pop();
+                  const isLastThinking = index === lastThinkingIndex;
+                  return <ThinkingBlock key={index} title="Agent Smith's thoughts..." content={block.thinking} isActive={isLastThinking} />;
                 } else if (block.type === 'long_running_command') {
                   return <LongRunningCommandComponent key={index} command={block} />;
                 }

@@ -257,21 +257,8 @@ check_existing_installation() {
       fi
     fi
 
-    # Backup existing .env if present
-    if [[ -f "$INSTALL_DIR/.env" ]]; then
-      log_info "Backing up existing .env configuration..."
-      cp "$INSTALL_DIR/.env" "$INSTALL_DIR/.env.backup"
-      ENV_BACKUP_CREATED=true
-    fi
-
-    # Backup existing data directory
-    if [[ -d "$INSTALL_DIR/data" ]]; then
-      log_info "Backing up user data..."
-      cp -r "$INSTALL_DIR/data" "$INSTALL_DIR/data.backup"
-      DATA_BACKUP_CREATED=true
-    fi
-
     log_info "This will upgrade your existing installation"
+    log_info "Your .env and data will be preserved automatically"
     echo ""
   else
     log_section "New Installation"
@@ -398,6 +385,24 @@ install_application() {
   mkdir -p "$INSTALL_DIR" || fatal_error "Failed to create install directory" \
     "Check that you have write permissions to $(dirname "$INSTALL_DIR")"
 
+  # Backup .env and data BEFORE removing anything (extra safety)
+  local ENV_FILE="$INSTALL_DIR/.env"
+  local DATA_DIR="$INSTALL_DIR/data"
+  local ENV_BACKUP=""
+  local DATA_BACKUP=""
+
+  if [[ -f "$ENV_FILE" ]]; then
+    ENV_BACKUP="/tmp/agent-smith-env-backup-$$"
+    cp "$ENV_FILE" "$ENV_BACKUP"
+    log_info "Backed up .env to temporary location"
+  fi
+
+  if [[ -d "$DATA_DIR" ]]; then
+    DATA_BACKUP="/tmp/agent-smith-data-backup-$$"
+    cp -r "$DATA_DIR" "$DATA_BACKUP"
+    log_info "Backed up data directory to temporary location"
+  fi
+
   # Remove old files but preserve .env and data
   if [[ -d "$INSTALL_DIR" ]]; then
     log_info "Removing old files..."
@@ -411,18 +416,25 @@ install_application() {
     fatal_error "Failed to install files" \
       "Check disk space and permissions"
 
-  # Restore .env if we backed it up
-  if [[ "${ENV_BACKUP_CREATED:-false}" == "true" ]] && [[ -f "$INSTALL_DIR/.env.backup" ]]; then
+  # Restore .env from temporary backup (this overwrites any .env from the clone)
+  if [[ -n "$ENV_BACKUP" ]] && [[ -f "$ENV_BACKUP" ]]; then
     log_info "Restoring your API key configuration..."
-    mv "$INSTALL_DIR/.env.backup" "$INSTALL_DIR/.env"
+    cp "$ENV_BACKUP" "$ENV_FILE"
+    rm "$ENV_BACKUP"
+    log_success "API keys preserved"
   fi
 
-  # Restore data if we backed it up
-  if [[ "${DATA_BACKUP_CREATED:-false}" == "true" ]] && [[ -d "$INSTALL_DIR/data.backup" ]]; then
+  # Restore data from temporary backup
+  if [[ -n "$DATA_BACKUP" ]] && [[ -d "$DATA_BACKUP" ]]; then
     log_info "Restoring your user data..."
-    rm -rf "$INSTALL_DIR/data"
-    mv "$INSTALL_DIR/data.backup" "$INSTALL_DIR/data"
+    rm -rf "$DATA_DIR"
+    mv "$DATA_BACKUP" "$DATA_DIR"
+    log_success "User data preserved"
   fi
+
+  # Clean up old backup files from previous approach (if they exist)
+  rm -f "$INSTALL_DIR/.env.backup" 2>/dev/null || true
+  rm -rf "$INSTALL_DIR/data.backup" 2>/dev/null || true
 
   log_success "Installation complete"
 }
