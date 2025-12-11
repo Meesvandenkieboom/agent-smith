@@ -266,3 +266,34 @@ export function getPlatformInfo(): {
   // console.log('💻 Platform info:', info);
   return info;
 }
+
+/**
+ * Session directory structure paths
+ * Phase 0.1: Separates metadata from workspace to fix CLAUDE.md deletion bug
+ */
+export interface SessionPaths {
+  root: string;           // ~/Documents/agent-smith/chat-{id}
+  claudeDir: string;      // root/.claude (SDK metadata)
+  metadata: string;       // root/metadata (chat-specific files)
+  claudeMd: string;       // root/metadata/CLAUDE.md
+  attachments: string;    // root/metadata/attachments (future: user uploads)
+  workspace: string;      // root/workspace (ACTUAL WORKING DIRECTORY)
+}
+
+/**
+ * Get all session directory paths for a given session ID
+ * @param sessionId - Full session ID (will be truncated to 8 chars for directory name)
+ * @returns SessionPaths object with all relevant paths
+ */
+export function getSessionPaths(sessionId: string): SessionPaths {
+  const root = path.join(getDefaultWorkingDirectory(), `chat-${sessionId.substring(0, 8)}`);
+
+  return {
+    root,
+    claudeDir: path.join(root, '.claude'),
+    metadata: path.join(root, 'metadata'),
+    claudeMd: path.join(root, 'metadata', 'CLAUDE.md'),
+    attachments: path.join(root, 'metadata', 'attachments'),
+    workspace: path.join(root, 'workspace'),
+  };
+}

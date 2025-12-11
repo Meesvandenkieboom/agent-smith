@@ -12,7 +12,7 @@ import { AVAILABLE_MODELS } from "../../client/config/models";
 import { configureProvider } from "../providers";
 import { getMcpServers } from "../mcpServers";
 import { AGENT_REGISTRY } from "../agents";
-import { validateDirectory } from "../directoryUtils";
+import { validateDirectory, getSessionPaths } from "../directoryUtils";
 import { saveImageToSessionPictures, saveFileToSessionFiles } from "../imageUtils";
 import { backgroundProcessManager } from "../backgroundProcessManager";
 import { loadUserConfig } from "../userConfig";
@@ -287,12 +287,18 @@ async function handleChatMessage(
   // For NEW streams: Spawn SDK and start background response processing
   try {
 
+    // Phase 0.1: Get workspace path for actual work (workingDir is session root)
+    const sessionId = session.id;
+    const paths = getSessionPaths(sessionId);
+    const workspaceDir = paths.workspace;
+
     // Load user configuration
     const userConfig = loadUserConfig();
 
     // Build query options with provider-specific system prompt (including agent list)
     // Add working directory context to system prompt AND all agent prompts
     // Pass GitHub repo info if connected (enables git workflow instructions)
+    // NOTE: Pass workspaceDir (not workingDir) for git commands
     const baseSystemPrompt = getSystemPrompt(
       providerType,
       AGENT_REGISTRY,
@@ -300,7 +306,7 @@ async function handleChatMessage(
       timezone as string | undefined,
       session.mode,
       session.github_repo,  // GitHub repo (e.g., "owner/repo") if connected
-      workingDir            // Working directory for git commands
+      workspaceDir          // Workspace directory for git commands
     );
     const systemPromptWithContext = `${baseSystemPrompt}
 
@@ -308,11 +314,14 @@ async function handleChatMessage(
 🔧 ENVIRONMENT CONTEXT
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-WORKING DIRECTORY: ${workingDir}
+WORKING DIRECTORY: ${workspaceDir}
 
-When creating files for this session, use the WORKING DIRECTORY path above.
+When creating files for this session, use the workspace directory above.
 All file paths should be relative to this directory or use absolute paths within it.
-Run bash commands with the understanding that this is your current working directory.
+
+IMPORTANT: Do not modify files outside the workspace directory.
+- Chat metadata: ${paths.metadata} (read-only)
+- CLAUDE.md: ${paths.claudeMd} (read-only)
 `;
 
     // Debug: Log system prompt size
@@ -326,8 +335,8 @@ Run bash commands with the understanding that this is your current working direc
     fs.writeFileSync(debugPath, systemPromptWithContext);
     console.log(`📝 Full system prompt written to: ${debugPath}`);
 
-    // Inject working directory context into all custom agent prompts
-    const agentsWithWorkingDir = injectWorkingDirIntoAgents(AGENT_REGISTRY, workingDir);
+    // Inject working directory context into all custom agent prompts (use workspace)
+    const agentsWithWorkingDir = injectWorkingDirIntoAgents(AGENT_REGISTRY, workspaceDir);
 
     // Capture stderr output for better error messages
     let stderrOutput = '';
@@ -351,7 +360,7 @@ Run bash commands with the understanding that this is your current working direc
       ...(isFirstMessage || !session.sdk_session_id ? {} : { resume: session.sdk_session_id }),
       includePartialMessages: true,
       agents: agentsWithWorkingDir, // Register custom agents with working dir context
-      cwd: workingDir, // Set working directory for all tool executions
+      cwd: workspaceDir, // Set workspace as working directory for all tool executions
       settingSources: ['project'], // Load Skills from .claude/skills/ and agents from .claude/agents/
       // Let SDK manage its own subprocess spawning - don't override executable
       // abortController will be added after stream creation

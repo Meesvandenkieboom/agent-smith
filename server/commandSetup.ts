@@ -5,6 +5,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { getBinaryDir } from './startup';
+import { getSessionPaths } from './directoryUtils';
 
 /**
  * Setup slash commands for a session by copying template .md files
@@ -49,14 +50,23 @@ export function setupSessionCommands(workingDir: string, mode: string): void {
     }
   }
 
-  // Copy mode-specific CLAUDE.md to working directory root
+  // Phase 0.1: Write CLAUDE.md to metadata/ directory instead of root
+  // Extract session ID from working directory path (e.g., chat-446f7a5e)
+  const sessionId = path.basename(workingDir).replace('chat-', '');
+  const paths = getSessionPaths(sessionId);
+
   const templateClaudeFile = path.join(baseDir, 'server', 'templates', mode, 'CLAUDE.md');
-  const destClaudeFile = path.join(workingDir, 'CLAUDE.md');
+  const destClaudeFile = paths.claudeMd;
+
+  // Ensure metadata directory exists
+  if (!fs.existsSync(paths.metadata)) {
+    fs.mkdirSync(paths.metadata, { recursive: true });
+  }
 
   // Only copy if template exists and destination doesn't exist (don't overwrite user's CLAUDE.md)
   if (fs.existsSync(templateClaudeFile) && !fs.existsSync(destClaudeFile)) {
     fs.copyFileSync(templateClaudeFile, destClaudeFile);
-    console.log(`📝 Created CLAUDE.md for ${mode} mode`);
+    console.log(`📝 Created CLAUDE.md in metadata/ for ${mode} mode`);
   }
 
   // Only log if commands were actually copied (less noise)

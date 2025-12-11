@@ -5,7 +5,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { getAppDataDirectory } from '../directoryUtils';
+import { getAppDataDirectory, getSessionPaths } from '../directoryUtils';
 import { writeGitHubCredentialsToEnv, reloadEnvironmentVariables } from '../utils/envWriter';
 
 // GitHub OAuth configuration
@@ -448,16 +448,31 @@ export async function handleGitHubRoutes(
       const { repoUrl, sessionId } = body;
       let { targetDir } = body;
 
-      // If sessionId is provided, look up the working directory
+      // Phase 0.1: Clone into workspace/ subdirectory instead of session root
+      // If sessionId is provided, look up the working directory and get workspace path
+      let workspaceDir: string | undefined;
       if (!targetDir && sessionId) {
         const { sessionDb } = await import('../database');
         const session = sessionDb.getSession(sessionId);
         if (session) {
-          targetDir = session.working_directory;
+          // Session working_directory points to root, we want workspace/
+          const paths = getSessionPaths(sessionId);
+          workspaceDir = paths.workspace;
+          targetDir = session.working_directory; // Keep for compatibility
+        }
+      } else if (targetDir) {
+        // If targetDir is provided directly, assume it's session root and derive workspace
+        const sessionIdMatch = path.basename(targetDir).match(/chat-(.+)/);
+        if (sessionIdMatch) {
+          const paths = getSessionPaths(sessionIdMatch[1]);
+          workspaceDir = paths.workspace;
+        } else {
+          // Not a session directory, use as-is
+          workspaceDir = targetDir;
         }
       }
 
-      if (!repoUrl || !targetDir) {
+      if (!repoUrl || !workspaceDir) {
         return new Response(JSON.stringify({
           success: false,
           error: 'Missing repoUrl or targetDir/sessionId'
@@ -477,16 +492,16 @@ export async function handleGitHubRoutes(
       const { promisify } = await import('util');
       const execAsync = promisify(exec);
 
-      // Check if target directory exists and is not empty
-      const dirExists = fs.existsSync(targetDir);
-      const dirContents = dirExists ? fs.readdirSync(targetDir) : [];
+      // Check if workspace directory exists and is not empty
+      const dirExists = fs.existsSync(workspaceDir);
+      const dirContents = dirExists ? fs.readdirSync(workspaceDir) : [];
       const hasGitFolder = dirContents.includes('.git');
 
       if (hasGitFolder) {
         // Already a git repo - just pull latest
-        console.log(`📂 Directory already has .git, pulling latest...`);
+        console.log(`📂 Workspace already has .git, pulling latest...`);
         const { stdout, stderr } = await execAsync(
-          `cd "${targetDir}" && git pull`,
+          `cd "${workspaceDir}" && git pull`,
           { timeout: 120000 }
         );
         if (stdout) console.log(stdout);
@@ -494,38 +509,38 @@ export async function handleGitHubRoutes(
         console.log('✅ Repository updated');
       } else if (dirExists && dirContents.length > 0) {
         // Directory exists with content but no .git - clear it and clone fresh
-        console.log(`📂 Directory exists with content, clearing and cloning fresh...`);
+        console.log(`📂 Workspace exists with content, clearing and cloning fresh...`);
 
         // Remove all existing files/folders in the directory
         for (const item of dirContents) {
-          const itemPath = `${targetDir}/${item}`;
+          const itemPath = `${workspaceDir}/${item}`;
           fs.rmSync(itemPath, { recursive: true, force: true });
         }
-        console.log(`🗑️ Cleared ${dirContents.length} items from directory`);
+        console.log(`🗑️ Cleared ${dirContents.length} items from workspace`);
 
         // Now clone into the empty directory
         const { stdout, stderr } = await execAsync(
-          `git clone "${authenticatedUrl}" "${targetDir}"`,
+          `git clone "${authenticatedUrl}" "${workspaceDir}"`,
           { timeout: 120000 }
         );
         if (stdout) console.log(stdout);
         if (stderr) console.log(stderr);
-        console.log('✅ Repository cloned successfully');
+        console.log('✅ Repository cloned successfully to workspace/');
       } else {
         // Empty or non-existent directory - clone normally
-        console.log(`🔄 Cloning repository to ${targetDir}...`);
+        console.log(`🔄 Cloning repository to workspace: ${workspaceDir}...`);
         const { stdout, stderr } = await execAsync(
-          `git clone "${authenticatedUrl}" "${targetDir}"`,
+          `git clone "${authenticatedUrl}" "${workspaceDir}"`,
           { timeout: 120000 } // 2 minute timeout
         );
         if (stdout) console.log(stdout);
         if (stderr) console.log(stderr);
-        console.log('✅ Repository cloned successfully');
+        console.log('✅ Repository cloned successfully to workspace/');
       }
 
-      // Configure git credentials for push access
+      // Configure git credentials for push access (in workspace)
       try {
-        await configureGitCredentials(targetDir);
+        await configureGitCredentials(workspaceDir);
       } catch (error) {
         console.warn('Warning: Failed to configure git credentials:', error);
         // Don't fail the whole operation if this fails
@@ -533,8 +548,8 @@ export async function handleGitHubRoutes(
 
       return new Response(JSON.stringify({
         success: true,
-        message: 'Repository cloned successfully (with push access configured)',
-        path: targetDir
+        message: 'Repository cloned successfully to workspace/ (with push access configured)',
+        path: workspaceDir
       }), {
         headers: { 'Content-Type': 'application/json' },
       });

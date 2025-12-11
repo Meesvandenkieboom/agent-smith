@@ -22,7 +22,7 @@ import { Database } from "bun:sqlite";
 import { randomUUID } from "crypto";
 import * as path from "path";
 import * as fs from "fs";
-import { getDefaultWorkingDirectory, expandPath, validateDirectory, getAppDataDirectory } from "./directoryUtils";
+import { getDefaultWorkingDirectory, expandPath, validateDirectory, getAppDataDirectory, getSessionPaths } from "./directoryUtils";
 import { deleteSessionPictures, deleteSessionFiles } from "./imageUtils";
 import { setupSessionCommands } from "./commandSetup";
 
@@ -406,25 +406,44 @@ class SessionDatabase {
   }
 
   private createChatDirectory(sessionId: string): string {
-    // Create unique chat folder: ~/Documents/agent-smith/chat-{first-8-chars}/
-    const shortId = sessionId.substring(0, 8);
-    const baseDir = getDefaultWorkingDirectory();
-    const chatDir = path.join(baseDir, `chat-${shortId}`);
+    // Phase 0.1: Create new directory structure with metadata/ and workspace/ separation
+    const paths = getSessionPaths(sessionId);
 
     try {
-      if (!fs.existsSync(chatDir)) {
-        fs.mkdirSync(chatDir, { recursive: true });
-        console.log('✅ Created chat directory:', chatDir);
-      } else {
-        console.log('📁 Chat directory already exists:', chatDir);
+      // Create directory structure
+      if (!fs.existsSync(paths.root)) {
+        fs.mkdirSync(paths.root, { recursive: true });
+        console.log('✅ Created session root:', paths.root);
       }
+
+      if (!fs.existsSync(paths.claudeDir)) {
+        fs.mkdirSync(paths.claudeDir, { recursive: true });
+        console.log('✅ Created .claude directory');
+      }
+
+      if (!fs.existsSync(paths.metadata)) {
+        fs.mkdirSync(paths.metadata, { recursive: true });
+        console.log('✅ Created metadata directory');
+      }
+
+      if (!fs.existsSync(paths.attachments)) {
+        fs.mkdirSync(paths.attachments, { recursive: true });
+        console.log('✅ Created attachments directory');
+      }
+
+      if (!fs.existsSync(paths.workspace)) {
+        fs.mkdirSync(paths.workspace, { recursive: true });
+        console.log('✅ Created workspace directory');
+      }
+
     } catch (error) {
-      console.error('❌ Failed to create chat directory:', error);
+      console.error('❌ Failed to create session directory structure:', error);
       // Fall back to base directory if creation fails
-      return baseDir;
+      return getDefaultWorkingDirectory();
     }
 
-    return chatDir;
+    // Return root (stored in database as working_directory)
+    return paths.root;
   }
 
   getSessions(): { sessions: Session[]; recreatedDirectories: string[] } {
@@ -494,6 +513,17 @@ class SessionDatabase {
         GROUP BY s.id`
       )
       .get(sessionId);
+
+    // Phase 0.1: Auto-migrate session to new structure if needed
+    if (session) {
+      try {
+        const { migrateSessionIfNeeded } = require('./migrations/migrateSessionStructure');
+        migrateSessionIfNeeded(sessionId);
+      } catch (error) {
+        // Don't fail session loading if migration fails
+        console.error(`⚠️  Failed to auto-migrate session ${sessionId}:`, error);
+      }
+    }
 
     return session || null;
   }
