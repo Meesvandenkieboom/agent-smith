@@ -148,24 +148,24 @@ async function handleUpdate() {
   }
 
   try {
-    console.log('\n⏳ Downloading latest installer...\n');
+    console.log('\n⏳ Downloading update script...\n');
 
-    // Use Bun's built-in fetch to download the installer
-    const response = await fetch('https://raw.githubusercontent.com/Meesvandenkieboom/agent-smith/main/install.sh');
+    // Use Bun's built-in fetch to download the update script
+    const response = await fetch('https://raw.githubusercontent.com/Meesvandenkieboom/agent-smith/main/update.sh');
 
     if (!response.ok) {
-      throw new Error(`Failed to download installer: ${response.status} ${response.statusText}`);
+      throw new Error(`Failed to download update script: ${response.status} ${response.statusText}`);
     }
 
-    const installScript = await response.text();
+    const updateScript = await response.text();
 
     // Write to a temporary file
     const tmpFile = '/tmp/agent-smith-update.sh';
-    await Bun.write(tmpFile, installScript);
+    await Bun.write(tmpFile, updateScript);
 
-    console.log('📦 Running installer...\n');
+    console.log('📦 Running update...\n');
 
-    // Execute the installer with bash
+    // Execute the update script with bash
     const proc = Bun.spawn(['bash', tmpFile], {
       stdout: 'inherit',
       stderr: 'inherit',
@@ -178,7 +178,7 @@ async function handleUpdate() {
     await Bun.$`rm -f ${tmpFile}`;
 
     if (exitCode === 0) {
-      console.log('\n✅ Update completed successfully!');
+      console.log('\n✅ Update completed!');
     } else {
       console.error(`\n❌ Update failed with exit code ${exitCode}`);
       process.exit(exitCode);

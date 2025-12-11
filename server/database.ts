@@ -25,6 +25,7 @@ import * as fs from "fs";
 import { getDefaultWorkingDirectory, expandPath, validateDirectory, getAppDataDirectory, getSessionPaths } from "./directoryUtils";
 import { deleteSessionPictures, deleteSessionFiles } from "./imageUtils";
 import { setupSessionCommands } from "./commandSetup";
+import { migrateSessionIfNeeded } from "./migrations/migrateSessionStructure";
 
 export interface Session {
   id: string;
@@ -517,7 +518,6 @@ class SessionDatabase {
     // Phase 0.1: Auto-migrate session to new structure if needed
     if (session) {
       try {
-        const { migrateSessionIfNeeded } = require('./migrations/migrateSessionStructure');
         migrateSessionIfNeeded(sessionId);
       } catch (error) {
         // Don't fail session loading if migration fails

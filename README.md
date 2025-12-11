@@ -187,10 +187,16 @@ To update to the latest version:
 agent-smith --update
 ```
 
-This will automatically download and run the latest installer from GitHub. No need to manually run curl commands!
+**The smart update process:**
+- ✅ Downloads latest code from GitHub
+- ✅ Only reinstalls dependencies if `package.json` changed
+- ✅ Builds the application
+- ✅ Preserves your .env, data, and OAuth tokens
+- ✅ Skips setup prompts (API keys, personalization, etc.)
+- ✅ Fast and minimal - only updates what's needed
 
 **Alternative update methods:**
-- Manual: `curl -fsSL https://raw.githubusercontent.com/Meesvandenkieboom/agent-smith/main/install.sh | bash`
+- Manual: `curl -fsSL https://raw.githubusercontent.com/Meesvandenkieboom/agent-smith/main/install.sh | bash` (full reinstall)
 - From source: `cd agent-smith && git pull && bun install && bun run build`
 
 ---

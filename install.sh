@@ -385,11 +385,13 @@ install_application() {
   mkdir -p "$INSTALL_DIR" || fatal_error "Failed to create install directory" \
     "Check that you have write permissions to $(dirname "$INSTALL_DIR")"
 
-  # Backup .env and data BEFORE removing anything (extra safety)
+  # Backup .env, data, and OAuth tokens BEFORE removing anything (extra safety)
   local ENV_FILE="$INSTALL_DIR/.env"
   local DATA_DIR="$INSTALL_DIR/data"
+  local TOKENS_FILE="$INSTALL_DIR/.tokens"
   local ENV_BACKUP=""
   local DATA_BACKUP=""
+  local TOKENS_BACKUP=""
 
   if [[ -f "$ENV_FILE" ]]; then
     ENV_BACKUP="/tmp/agent-smith-env-backup-$$"
@@ -403,10 +405,16 @@ install_application() {
     log_info "Backed up data directory to temporary location"
   fi
 
-  # Remove old files but preserve .env and data
+  if [[ -f "$TOKENS_FILE" ]]; then
+    TOKENS_BACKUP="/tmp/agent-smith-tokens-backup-$$"
+    cp "$TOKENS_FILE" "$TOKENS_BACKUP"
+    log_info "Backed up OAuth tokens to temporary location"
+  fi
+
+  # Remove old files but preserve .env, data, and .tokens
   if [[ -d "$INSTALL_DIR" ]]; then
     log_info "Removing old files..."
-    find "$INSTALL_DIR" -mindepth 1 ! -name '.env' ! -name '.env.backup' ! -name 'data' ! -name 'data.backup' -delete 2>/dev/null || true
+    find "$INSTALL_DIR" -mindepth 1 ! -name '.env' ! -name '.tokens' ! -name '.env.backup' ! -name 'data' ! -name 'data.backup' -delete 2>/dev/null || true
   fi
 
   # Copy new files
@@ -432,6 +440,14 @@ install_application() {
     log_success "User data preserved"
   fi
 
+  # Restore OAuth tokens from temporary backup
+  if [[ -n "$TOKENS_BACKUP" ]] && [[ -f "$TOKENS_BACKUP" ]]; then
+    log_info "Restoring your OAuth tokens..."
+    cp "$TOKENS_BACKUP" "$TOKENS_FILE"
+    rm "$TOKENS_BACKUP"
+    log_success "OAuth tokens preserved"
+  fi
+
   # Clean up old backup files from previous approach (if they exist)
   rm -f "$INSTALL_DIR/.env.backup" 2>/dev/null || true
   rm -rf "$INSTALL_DIR/data.backup" 2>/dev/null || true
@@ -444,15 +460,19 @@ install_application() {
 # =============================================================================
 
 configure_api_keys() {
-  log_section "API Key Setup"
-
-  # Skip if .env already exists with valid keys
+  # Skip silently if .env already exists with valid keys OR OAuth tokens exist
   if [[ -f "$INSTALL_DIR/.env" ]]; then
     if grep -q "^ANTHROPIC_API_KEY=sk-ant-\|^ZAI_API_KEY=\|^MOONSHOT_API_KEY=" "$INSTALL_DIR/.env" 2>/dev/null; then
-      log_success "API key already configured"
       return
     fi
   fi
+
+  # Also skip if OAuth tokens exist
+  if [[ -f "$INSTALL_DIR/.tokens" ]]; then
+    return
+  fi
+
+  log_section "API Key Setup"
 
   echo "Which API provider(s) do you want to use?"
   echo ""
@@ -600,10 +620,8 @@ EOF
 # =============================================================================
 
 configure_personalization() {
-  # Skip if user-config.json already exists
+  # Skip silently if user-config.json already exists
   if [[ -f "$INSTALL_DIR/data/user-config.json" ]]; then
-    log_section "Personalization"
-    log_success "Existing personalization preserved"
     return
   fi
 
@@ -650,10 +668,23 @@ EOF
 # =============================================================================
 
 create_global_launcher() {
-  log_section "Setting Up Global Command"
-
   local LAUNCHER_PATH=""
   local NEEDS_SHELL_RESTART=false
+
+  # Check if global launcher already exists
+  local GLOBAL_LAUNCHER_EXISTS=false
+  if [[ "$OS_PREFIX" == "windows" ]] && [[ -f "$HOME/bin/agent-smith" ]]; then
+    GLOBAL_LAUNCHER_EXISTS=true
+  elif [[ ("$OS_PREFIX" == "macos" || "$OS_PREFIX" == "linux") ]] && [[ -f "/usr/local/bin/agent-smith" ]]; then
+    GLOBAL_LAUNCHER_EXISTS=true
+  fi
+
+  if [[ "$GLOBAL_LAUNCHER_EXISTS" == "true" ]]; then
+    # Silently skip if already exists
+    return
+  fi
+
+  log_section "Setting Up Global Command"
 
   # Create launcher script content with explicit bun path
   local BUN_PATH

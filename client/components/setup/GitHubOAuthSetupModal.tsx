@@ -283,8 +283,8 @@ export function GitHubOAuthSetupModal({ onComplete, onClose }: GitHubOAuthSetupM
                   Instructions:
                 </p>
                 <ol style={{ color: 'rgba(255, 255, 255, 0.7)', lineHeight: 1.8, paddingLeft: '20px' }}>
-                  <li>Click "New OAuth App" on the GitHub settings page</li>
-                  <li>Fill in the application details (we'll provide the values)</li>
+                  <li>Click &ldquo;New OAuth App&rdquo; on the GitHub settings page</li>
+                  <li>Fill in the application details (we&apos;ll provide the values)</li>
                   <li>Copy your Client ID and Secret</li>
                 </ol>
               </div>
@@ -448,8 +448,8 @@ export function GitHubOAuthSetupModal({ onComplete, onClose }: GitHubOAuthSetupM
                 }}
               >
                 <p style={{ margin: 0, color: 'rgba(255, 255, 255, 0.9)', fontSize: '13px', lineHeight: 1.5 }}>
-                  <strong>Note:</strong> After clicking "Register application", you'll see your Client ID.
-                  Click "Generate a new client secret" to get your secret. <strong>Save it securely - you can only view it once!</strong>
+                  <strong>Note:</strong> After clicking &ldquo;Register application&rdquo;, you&apos;ll see your Client ID.
+                  Click &ldquo;Generate a new client secret&rdquo; to get your secret. <strong>Save it securely - you can only view it once!</strong>
                 </p>
               </div>
             </div>
