@@ -41,6 +41,7 @@ interface NewChatWelcomeProps {
   mode?: 'general' | 'coder' | 'intense-research' | 'spark' | 'hive';
   onRepoSelected?: (repoUrl: string, repoName: string) => void;
   selectedRepo?: { url: string; name: string } | null;
+  selectedModel?: string;
 }
 
 const CAPABILITIES = [
@@ -51,7 +52,7 @@ const CAPABILITIES = [
   "I can analyze data and files"
 ];
 
-export function NewChatWelcome({ inputValue, onInputChange, onSubmit, onStop, disabled, isGenerating, isPlanMode, onTogglePlanMode, availableCommands = [], onOpenBuildWizard, mode, onRepoSelected, selectedRepo }: NewChatWelcomeProps) {
+export function NewChatWelcome({ inputValue, onInputChange, onSubmit, onStop, disabled, isGenerating, isPlanMode, onTogglePlanMode, availableCommands = [], onOpenBuildWizard, mode, onRepoSelected, selectedRepo, selectedModel }: NewChatWelcomeProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const plusMenuRef = useRef<HTMLDivElement>(null);
@@ -628,7 +629,7 @@ export function NewChatWelcome({ inputValue, onInputChange, onSubmit, onStop, di
 
           {/* Mode Selector below input */}
           <div className="mt-6">
-            <ModeSelector selectedMode={selectedMode} onSelectMode={setSelectedMode} onOpenBuildWizard={onOpenBuildWizard} />
+            <ModeSelector selectedMode={selectedMode} onSelectMode={setSelectedMode} onOpenBuildWizard={onOpenBuildWizard} selectedModel={selectedModel} />
           </div>
         </div>
       </div>

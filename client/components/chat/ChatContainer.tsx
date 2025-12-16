@@ -1317,6 +1317,7 @@ export function ChatContainer() {
             mode={currentSessionMode}
             onRepoSelected={handleRepoSelected}
             selectedRepo={selectedRepo}
+            selectedModel={selectedModel}
           />
         ) : (
           // Chat Interface

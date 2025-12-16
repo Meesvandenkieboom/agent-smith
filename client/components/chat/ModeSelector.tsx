@@ -73,9 +73,10 @@ interface ModeSelectorProps {
   selectedMode: 'general' | 'coder' | 'intense-research' | 'spark' | 'hive';
   onSelectMode: (mode: 'general' | 'coder' | 'intense-research' | 'spark' | 'hive') => void;
   onOpenBuildWizard?: () => void;
+  selectedModel?: string;
 }
 
-export function ModeSelector({ selectedMode, onSelectMode, onOpenBuildWizard }: ModeSelectorProps) {
+export function ModeSelector({ selectedMode, onSelectMode, onOpenBuildWizard, selectedModel }: ModeSelectorProps) {
   const [hoveredMode, setHoveredMode] = useState<string | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
 
@@ -89,6 +90,11 @@ export function ModeSelector({ selectedMode, onSelectMode, onOpenBuildWizard }: 
   };
 
   const handleModeClick = (mode: ModeOption) => {
+    // When HIVE model is selected, only allow hive mode (lock other modes)
+    if (selectedModel === 'hive' && mode.id !== 'hive' && !mode.isBuildMode) {
+      return;
+    }
+
     if (mode.isBuildMode) {
       onOpenBuildWizard?.();
     } else {
@@ -107,11 +113,12 @@ export function ModeSelector({ selectedMode, onSelectMode, onOpenBuildWizard }: 
               onClick={() => handleModeClick(mode)}
               onMouseEnter={(e) => handleMouseEnter(mode.id, e)}
               onMouseLeave={() => setHoveredMode(null)}
+              disabled={selectedModel === 'hive' && mode.id !== 'hive' && !mode.isBuildMode}
               className={`promptCard waterfall flex flex-col shrink-0 px-4 py-2 rounded-lg group items-center justify-center text-center ${
                 isSelected
                   ? 'border-none'
                   : 'border-b-2 border-white/10 hover:border-white/20 text-white/90 hover:text-white transition'
-              }`}
+              } ${selectedModel === 'hive' && mode.id !== 'hive' && !mode.isBuildMode ? 'opacity-40 cursor-not-allowed' : ''}`}
               style={{
               ...(isSelected ? {
                 backgroundImage: mode.gradient,

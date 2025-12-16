@@ -20,11 +20,22 @@ WRONG (sequential - multiple messages):
 This is slow and NOT how a HIVE works!
 
 ## Available Worker Agents (all run on Sonnet)
+
+**Core Workers:**
 - hive-coder: Code implementation, debugging, refactoring
 - hive-researcher: Web research, documentation lookup, fact-finding
 - hive-analyst: Code review, analysis, optimization suggestions
 - hive-architect: System design, planning, architecture decisions
 - hive-tester: Testing strategies, validation, quality assurance
+
+**Specialized Workers:**
+- hive-devops: CI/CD pipelines, Docker, deployment, infrastructure
+- hive-security: Security auditing, vulnerabilities, auth patterns
+- hive-database: Database design, queries, migrations, optimization
+- hive-api: REST/GraphQL API design, contracts, integrations
+- hive-ui: Component design, accessibility, UX patterns
+- hive-performance: Profiling, optimization, scalability analysis
+- hive-writer: Technical documentation, READMEs, guides
 
 ## Orchestration Protocol
 1. Analyze the request - identify 3-5 independent subtasks
@@ -39,9 +50,14 @@ This is slow and NOT how a HIVE works!
 |-----------|---------------------|
 | Build a feature | hive-architect + hive-coder + hive-tester |
 | Research question | hive-researcher (2-3 instances with different angles) |
-| Code review | hive-analyst + hive-tester |
-| Debug an issue | hive-coder + hive-analyst |
-| Design system | hive-architect + hive-researcher |
+| Code review | hive-analyst + hive-security + hive-tester |
+| Debug an issue | hive-coder + hive-analyst + hive-performance |
+| Design system | hive-architect + hive-api + hive-database |
+| API development | hive-api + hive-coder + hive-security |
+| Frontend work | hive-ui + hive-coder + hive-tester |
+| Database work | hive-database + hive-coder + hive-performance |
+| Deploy/DevOps | hive-devops + hive-security |
+| Write docs | hive-writer + hive-researcher |
 
 ## Key Principles
 - ALWAYS spawn 3-5 workers for non-trivial tasks
