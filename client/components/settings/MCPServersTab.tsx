@@ -300,7 +300,7 @@ export function MCPServersTab() {
           <p className="font-medium text-purple-300 mb-1">MCP Server Integrations</p>
           <p>
             Connect external tools and services via the Model Context Protocol (MCP).
-            Add HTTP servers for web-based tools or stdio servers for local command-line tools.
+            For OAuth-protected servers (Atlassian, Figma), use <strong>Stdio</strong> type with <code className="bg-white/10 px-1 rounded">mcp-remote</code>.
           </p>
           <a
             href="https://modelcontextprotocol.io/introduction"
@@ -311,6 +311,56 @@ export function MCPServersTab() {
             Learn more about MCP <ExternalLink size={14} />
           </a>
         </div>
+      </div>
+
+      {/* Quick setup cards for popular servers */}
+      <div className="mb-4 grid grid-cols-2 gap-2">
+        <button
+          onClick={() => {
+            setServerType('stdio');
+            setNewServer({
+              id: 'atlassian',
+              name: 'Atlassian (Jira & Confluence)',
+              url: '',
+              command: 'npx',
+              args: '-y, mcp-remote, https://mcp.atlassian.com/v1/sse',
+              headers: ''
+            });
+            setShowAddForm(true);
+          }}
+          className="flex items-center gap-3 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg hover:bg-blue-500/20 transition-colors text-left"
+        >
+          <div className="p-2 bg-blue-500/20 rounded-lg">
+            <Globe size={18} className="text-blue-400" />
+          </div>
+          <div>
+            <p className="font-medium text-blue-300 text-sm">Atlassian</p>
+            <p className="text-xs text-gray-500">Jira & Confluence</p>
+          </div>
+        </button>
+        <button
+          onClick={() => {
+            setServerType('stdio');
+            setNewServer({
+              id: 'figma',
+              name: 'Figma',
+              url: '',
+              command: 'npx',
+              args: '-y, mcp-remote, https://mcp.figma.com/mcp',
+              headers: ''
+            });
+            setShowAddForm(true);
+          }}
+          className="flex items-center gap-3 p-3 bg-pink-500/10 border border-pink-500/20 rounded-lg hover:bg-pink-500/20 transition-colors text-left"
+        >
+          <div className="p-2 bg-pink-500/20 rounded-lg">
+            <Globe size={18} className="text-pink-400" />
+          </div>
+          <div>
+            <p className="font-medium text-pink-300 text-sm">Figma</p>
+            <p className="text-xs text-gray-500">Design files & FigJam</p>
+          </div>
+        </button>
       </div>
 
       {/* Server list */}
