@@ -40,6 +40,7 @@ interface MCPServersConfig {
   enabled: Record<string, boolean>;
   custom: Record<string, MCPServerConfig>;
   auth: Record<string, MCPAuthToken>; // Store auth tokens per server
+  headerOverrides: Record<string, Record<string, string>>; // Store header overrides (API keys) for built-in servers
 }
 
 // Known OAuth providers and their configurations
@@ -76,15 +77,17 @@ async function loadMCPConfig(): Promise<MCPServersConfig> {
   try {
     const data = await fs.readFile(MCP_CONFIG_PATH, 'utf-8');
     const config = JSON.parse(data) as MCPServersConfig;
-    // Ensure auth field exists
+    // Ensure fields exist
     if (!config.auth) config.auth = {};
+    if (!config.headerOverrides) config.headerOverrides = {};
     return config;
   } catch {
     // Initialize with all built-in servers enabled
     const config: MCPServersConfig = {
       enabled: {},
       custom: {},
-      auth: {}
+      auth: {},
+      headerOverrides: {}
     };
 
     // Enable all built-in servers by default
@@ -121,6 +124,7 @@ function getAllServers(config: MCPServersConfig) {
     builtin: boolean;
     authenticated: boolean;
     authProvider?: string;
+    hasApiKey?: boolean;
   }> = [];
 
   // Add built-in servers from Anthropic provider (as they're the default)
@@ -128,6 +132,7 @@ function getAllServers(config: MCPServersConfig) {
   Object.entries(builtinServers).forEach(([id, serverConfig]) => {
     const url = serverConfig.type === 'http' ? serverConfig.url : undefined;
     const authProvider = url ? detectAuthProvider(url) : undefined;
+    const headerOverride = config.headerOverrides[id];
     servers.push({
       id,
       name: id.charAt(0).toUpperCase() + id.slice(1).replace(/-/g, ' '),
@@ -139,6 +144,7 @@ function getAllServers(config: MCPServersConfig) {
       builtin: true,
       authenticated: !!config.auth[id],
       authProvider,
+      hasApiKey: headerOverride && Object.keys(headerOverride).length > 0,
     });
   });
 
@@ -540,6 +546,60 @@ export async function handleMCPServerRoutes(req: Request, url: URL): Promise<Res
     await saveMCPConfig(config);
 
     return new Response(JSON.stringify({ success: true, id }), {
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+
+  // PATCH /api/mcp-servers/:id/api-key - Update API key for an MCP server
+  const apiKeyMatch = url.pathname.match(/^\/api\/mcp-servers\/([^/]+)\/api-key$/);
+  if (req.method === 'PATCH' && apiKeyMatch) {
+    const id = apiKeyMatch[1];
+    const body = await req.json() as { apiKey: string; headerName?: string };
+    const config = await loadMCPConfig();
+
+    // Validate server exists
+    const builtinServers = MCP_SERVERS_BY_PROVIDER['anthropic'] || {};
+    const serverConfig = builtinServers[id] || config.custom[id];
+
+    if (!serverConfig) {
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'Server not found'
+      }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Only HTTP servers can have API keys
+    if (serverConfig.type !== 'http') {
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'Only HTTP servers support API keys'
+      }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Update or remove the API key
+    if (body.apiKey && body.apiKey.trim()) {
+      const headerName = body.headerName || 'CONTEXT7_API_KEY';
+      config.headerOverrides[id] = {
+        [headerName]: body.apiKey.trim()
+      };
+    } else {
+      // Remove the override if API key is empty
+      delete config.headerOverrides[id];
+    }
+
+    await saveMCPConfig(config);
+
+    return new Response(JSON.stringify({
+      success: true,
+      id,
+      hasApiKey: !!body.apiKey?.trim()
+    }), {
       headers: { 'Content-Type': 'application/json' }
     });
   }

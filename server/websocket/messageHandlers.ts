@@ -252,7 +252,7 @@ async function handleChatMessage(
   }
 
   // Get MCP servers for this provider (model-specific filtering for GLM)
-  const mcpServers = getMcpServers(providerType, apiModelId);
+  const mcpServers = await getMcpServers(providerType, apiModelId);
 
   // Minimal request logging - one line summary
   // Note: At this point we haven't checked history yet, so we use isNewStream for subprocess status

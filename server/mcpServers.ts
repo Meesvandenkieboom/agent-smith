@@ -18,7 +18,11 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import * as fs from 'fs/promises';
+import * as path from 'path';
 import type { ProviderType } from '../client/config/models';
+
+const MCP_CONFIG_PATH = path.join(process.cwd(), '.claude', 'mcp-servers.json');
 
 interface McpHttpServerConfig {
   type: 'http';
@@ -34,6 +38,19 @@ interface McpStdioServerConfig {
 }
 
 type McpServerConfig = McpHttpServerConfig | McpStdioServerConfig;
+
+/**
+ * Load header overrides from config file
+ */
+async function loadHeaderOverrides(): Promise<Record<string, Record<string, string>>> {
+  try {
+    const data = await fs.readFile(MCP_CONFIG_PATH, 'utf-8');
+    const config = JSON.parse(data);
+    return config.headerOverrides || {};
+  } catch {
+    return {};
+  }
+}
 
 /**
  * MCP servers configuration for different providers
@@ -97,13 +114,31 @@ export const MCP_SERVERS_BY_PROVIDER: Record<ProviderType, Record<string, McpSer
 };
 
 /**
- * Get MCP servers for a specific provider
+ * Get MCP servers for a specific provider (with header overrides merged)
  *
  * @param provider - The provider type
  * @param _modelId - Optional model ID for model-specific MCP server restrictions
  */
-export function getMcpServers(provider: ProviderType, _modelId?: string): Record<string, McpServerConfig> {
-  const servers = MCP_SERVERS_BY_PROVIDER[provider] || {};
+export async function getMcpServers(provider: ProviderType, _modelId?: string): Promise<Record<string, McpServerConfig>> {
+  const baseServers = MCP_SERVERS_BY_PROVIDER[provider] || {};
+  const headerOverrides = await loadHeaderOverrides();
+
+  // Deep clone and merge header overrides
+  const servers: Record<string, McpServerConfig> = {};
+  for (const [id, config] of Object.entries(baseServers)) {
+    if (config.type === 'http' && headerOverrides[id]) {
+      servers[id] = {
+        ...config,
+        headers: {
+          ...config.headers,
+          ...headerOverrides[id],
+        },
+      };
+    } else {
+      servers[id] = config;
+    }
+  }
+
   return servers;
 }
 

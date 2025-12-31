@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Power, PowerOff, Loader2, Info, X, Globe, Terminal, ExternalLink, CheckCircle2, XCircle, Plug2, KeyRound, Link, Unlink, Wrench } from 'lucide-react';
+import { Plus, Trash2, Power, PowerOff, Loader2, Info, X, Globe, Terminal, ExternalLink, CheckCircle2, XCircle, Plug2, KeyRound, Link, Unlink, Wrench, Key } from 'lucide-react';
 import { toast } from '../../utils/toast';
 
 interface MCPServer {
@@ -21,6 +21,7 @@ interface MCPServer {
   status?: 'connected' | 'disconnected' | 'error' | 'needs-auth';
   authenticated?: boolean;
   authProvider?: string; // e.g., 'atlassian', 'figma', etc.
+  hasApiKey?: boolean;
 }
 
 interface MCPConnection {
@@ -53,6 +54,8 @@ export function MCPServersTab() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [testingId, setTestingId] = useState<string | null>(null);
   const [connectingId, setConnectingId] = useState<string | null>(null);
+  const [editingApiKeyId, setEditingApiKeyId] = useState<string | null>(null);
+  const [apiKeyValue, setApiKeyValue] = useState('');
 
   useEffect(() => {
     loadServers();
@@ -229,6 +232,29 @@ export function MCPServersTab() {
     } catch (error) {
       console.error('Failed to disconnect:', error);
       toast.error('Disconnect failed');
+    }
+  };
+
+  const handleSaveApiKey = async (id: string) => {
+    try {
+      const response = await fetch(`/api/mcp-servers/${id}/api-key`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ apiKey: apiKeyValue }),
+      });
+      const data = await response.json();
+
+      if (data.success) {
+        toast.success(data.hasApiKey ? 'API key saved' : 'API key removed', { description: id });
+        setEditingApiKeyId(null);
+        setApiKeyValue('');
+        await loadServers();
+      } else {
+        toast.error('Failed to save API key', { description: data.error });
+      }
+    } catch (error) {
+      console.error('Failed to save API key:', error);
+      toast.error('Failed to save API key');
     }
   };
 
@@ -442,6 +468,24 @@ export function MCPServersTab() {
                 </div>
 
                 <div className="flex items-center gap-2 flex-shrink-0">
+                  {/* API Key button (for HTTP servers) */}
+                  {server.type === 'http' && (
+                    <button
+                      onClick={() => {
+                        setEditingApiKeyId(editingApiKeyId === server.id ? null : server.id);
+                        setApiKeyValue('');
+                      }}
+                      className={`p-2 rounded-lg transition-colors ${
+                        server.hasApiKey
+                          ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
+                          : 'bg-white/5 text-gray-400 hover:bg-white/10'
+                      }`}
+                      title={server.hasApiKey ? 'API key configured - click to edit' : 'Add API key'}
+                    >
+                      <Key size={16} />
+                    </button>
+                  )}
+
                   {/* Test connection button (for HTTP servers) */}
                   {server.type === 'http' && (
                     <button
@@ -539,6 +583,54 @@ export function MCPServersTab() {
                       </span>
                     )}
                   </div>
+                </div>
+              )}
+
+              {/* API Key inline form */}
+              {editingApiKeyId === server.id && (
+                <div className="ml-11 p-3 bg-white/5 rounded-lg border border-white/10">
+                  <label className="block text-sm text-gray-300 mb-2">
+                    API Key {server.hasApiKey && <span className="text-green-400">(currently set)</span>}
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="password"
+                      value={apiKeyValue}
+                      onChange={(e) => setApiKeyValue(e.target.value)}
+                      placeholder={server.hasApiKey ? '••••••••' : 'Enter API key'}
+                      className="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-gray-100 placeholder-gray-500 focus:outline-none focus:border-white/20 font-mono text-sm"
+                    />
+                    <button
+                      onClick={() => handleSaveApiKey(server.id)}
+                      className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm transition-colors"
+                    >
+                      Save
+                    </button>
+                    {server.hasApiKey && (
+                      <button
+                        onClick={() => {
+                          setApiKeyValue('');
+                          handleSaveApiKey(server.id);
+                        }}
+                        className="px-4 py-2 bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded-lg text-sm transition-colors"
+                        title="Remove API key"
+                      >
+                        Remove
+                      </button>
+                    )}
+                    <button
+                      onClick={() => {
+                        setEditingApiKeyId(null);
+                        setApiKeyValue('');
+                      }}
+                      className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-sm transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                  <p className="mt-2 text-xs text-gray-500">
+                    Get your free API key from <a href="https://context7.com/dashboard" target="_blank" rel="noopener noreferrer" className="text-purple-400 hover:text-purple-300">context7.com/dashboard</a>
+                  </p>
                 </div>
               )}
             </div>
