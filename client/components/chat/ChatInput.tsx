@@ -53,9 +53,11 @@ interface ChatInputProps {
   sessionId?: string | null;
   onRepoSelected?: (repoUrl: string, repoName: string) => void;
   selectedRepo?: { url: string; name: string } | null;
+  /** Name of already-connected GitHub repo for this session */
+  connectedRepo?: string | null;
 }
 
-export function ChatInput({ value, onChange, onSubmit, onStop, disabled, isGenerating, placeholder, isPlanMode, onTogglePlanMode, backgroundProcesses: _backgroundProcesses = [], onKillProcess: _onKillProcess, mode, availableCommands = [], contextUsage, selectedModel, sessionId, onRepoSelected, selectedRepo }: ChatInputProps) {
+export function ChatInput({ value, onChange, onSubmit, onStop, disabled, isGenerating, placeholder, isPlanMode, onTogglePlanMode, backgroundProcesses: _backgroundProcesses = [], onKillProcess: _onKillProcess, mode, availableCommands = [], contextUsage, selectedModel, sessionId, onRepoSelected, selectedRepo, connectedRepo }: ChatInputProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const plusMenuRef = useRef<HTMLDivElement>(null);
@@ -502,27 +504,43 @@ export function ChatInput({ value, onChange, onSubmit, onStop, disabled, isGener
                       </button>
                       <button
                         onClick={() => {
-                          setIsRepoSelectorOpen(true);
-                          setIsPlusMenuOpen(false);
+                          if (!connectedRepo) {
+                            setIsRepoSelectorOpen(true);
+                            setIsPlusMenuOpen(false);
+                          }
                         }}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-200 hover:bg-white/5 transition-colors border-t border-white/5"
+                        disabled={!!connectedRepo}
+                        className={`w-full flex items-center gap-3 px-4 py-3 text-sm border-t border-white/5 transition-colors ${
+                          connectedRepo
+                            ? 'text-gray-500 cursor-not-allowed opacity-50'
+                            : 'text-gray-200 hover:bg-white/5'
+                        }`}
                         type="button"
+                        title={connectedRepo ? `Already connected to ${connectedRepo}` : 'Select GitHub Repository'}
                       >
-                        <Github size={18} className="text-gray-400" />
-                        <span>GitHub Repository</span>
+                        <Github size={18} className={connectedRepo ? 'text-gray-600' : 'text-gray-400'} />
+                        <span>{connectedRepo ? 'Repo Connected' : 'GitHub Repository'}</span>
                       </button>
                     </div>
                   )}
                 </div>
 
-                {/* Repository indicator */}
-                {selectedRepo && (
+                {/* Repository indicator - show connected or pending selection */}
+                {(connectedRepo || selectedRepo) && (
                   <div
-                    className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-white/5 border border-white/10 text-xs text-gray-400"
-                    title={selectedRepo.name}
+                    className={`flex items-center gap-1.5 px-2 py-1 rounded-md border text-xs ${
+                      connectedRepo
+                        ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                        : 'bg-white/5 border-white/10 text-gray-400'
+                    }`}
+                    title={connectedRepo || selectedRepo?.name}
                   >
-                    <GitBranch size={12} className="text-gray-500" />
-                    <span className="max-w-[100px] truncate">{selectedRepo.name.split('/')[1] || selectedRepo.name}</span>
+                    <GitBranch size={12} className={connectedRepo ? 'text-emerald-500' : 'text-gray-500'} />
+                    <span className="max-w-[100px] truncate">
+                      {connectedRepo
+                        ? connectedRepo.split('/')[1] || connectedRepo
+                        : selectedRepo?.name.split('/')[1] || selectedRepo?.name}
+                    </span>
                   </div>
                 )}
 

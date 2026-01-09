@@ -27,6 +27,7 @@ interface ScrollButtonProps {
 
 export function ScrollButton({ scrollContainerRef }: ScrollButtonProps) {
   const [scrollState, setScrollState] = useState<'hidden' | 'show-bottom' | 'show-top'>('hidden');
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const checkScrollPosition = useCallback(() => {
     const container = scrollContainerRef.current;
@@ -43,10 +44,16 @@ export function ScrollButton({ scrollContainerRef }: ScrollButtonProps) {
     // Determine which button to show based on scroll position
     if (distanceFromBottom > BOTTOM_THRESHOLD) {
       setScrollState('show-bottom');
+      // Estimate number of messages below based on scroll distance
+      // Average message height ~150px, show a rough count
+      const estimatedMessages = Math.ceil(distanceFromBottom / 150);
+      setUnreadCount(Math.min(estimatedMessages, 99));
     } else if (distanceFromTop > TOP_THRESHOLD) {
       setScrollState('show-top');
+      setUnreadCount(0);
     } else {
       setScrollState('hidden');
+      setUnreadCount(0);
     }
   }, [scrollContainerRef]);
 
@@ -55,18 +62,15 @@ export function ScrollButton({ scrollContainerRef }: ScrollButtonProps) {
     const container = scrollContainerRef.current;
     if (!container) return;
 
-    let timeoutId: NodeJS.Timeout;
     let rafId: number | null = null;
 
     const handleScroll = () => {
-      // Cancel any pending RAF/timeout
+      // Cancel any pending RAF
       if (rafId) cancelAnimationFrame(rafId);
-      clearTimeout(timeoutId);
 
-      // Use requestAnimationFrame for better performance
-      // Only run after scrolling stops (200ms debounce)
+      // Use requestAnimationFrame for immediate feedback (no debounce delay)
       rafId = requestAnimationFrame(() => {
-        timeoutId = setTimeout(checkScrollPosition, 200);
+        checkScrollPosition();
       });
     };
 
@@ -76,7 +80,6 @@ export function ScrollButton({ scrollContainerRef }: ScrollButtonProps) {
     return () => {
       container.removeEventListener('scroll', handleScroll);
       if (rafId) cancelAnimationFrame(rafId);
-      clearTimeout(timeoutId);
     };
   }, [scrollContainerRef, checkScrollPosition]);
 
@@ -84,19 +87,22 @@ export function ScrollButton({ scrollContainerRef }: ScrollButtonProps) {
     const container = scrollContainerRef.current;
     if (!container) return;
 
+    // Use instant scroll for faster navigation
     container.scrollTo({
       top: container.scrollHeight,
-      behavior: 'smooth'
+      behavior: 'instant'
     });
+    setUnreadCount(0);
   };
 
   const scrollToTop = () => {
     const container = scrollContainerRef.current;
     if (!container) return;
 
+    // Use instant scroll for faster navigation
     container.scrollTo({
       top: 0,
-      behavior: 'smooth'
+      behavior: 'instant'
     });
   };
 
@@ -111,7 +117,14 @@ export function ScrollButton({ scrollContainerRef }: ScrollButtonProps) {
       aria-label={isBottom ? 'Scroll to bottom' : 'Scroll to top'}
     >
       {isBottom ? (
-        <ArrowDown size={18} strokeWidth={2.5} />
+        <div className="flex items-center gap-1.5">
+          <ArrowDown size={18} strokeWidth={2.5} />
+          {unreadCount > 0 && (
+            <span className="text-xs font-semibold min-w-[18px]">
+              {unreadCount > 99 ? '99+' : unreadCount}
+            </span>
+          )}
+        </div>
       ) : (
         <ArrowUp size={18} strokeWidth={2.5} />
       )}

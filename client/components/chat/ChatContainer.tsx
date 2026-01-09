@@ -1350,6 +1350,7 @@ export function ChatContainer() {
               sessionId={currentSessionId}
               onRepoSelected={handleRepoSelected}
               selectedRepo={selectedRepo}
+              connectedRepo={currentSessionId ? sessions.find(s => s.id === currentSessionId)?.github_repo : null}
             />
           </>
         )}
