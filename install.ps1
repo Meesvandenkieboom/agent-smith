@@ -1,7 +1,7 @@
 # =============================================================================
-# Agent Smith Windows Installer - Production Grade
+# Agentic Windows Installer - Production Grade
 # =============================================================================
-# Run with: iwr -useb https://raw.githubusercontent.com/Meesvandenkieboom/agent-smith/main/install.ps1 | iex
+# Run with: iwr -useb https://raw.githubusercontent.com/Meesvandenkieboom/agentic/main/install.ps1 | iex
 #
 # Handles all edge cases, validates dependencies, verifies downloads,
 # and provides comprehensive error handling with rollback support.
@@ -10,10 +10,14 @@
 $ErrorActionPreference = "Stop"
 
 # Configuration
-$REPO = "Meesvandenkieboom/agent-smith"
-$APP_NAME = "agent-smith"
+$REPO = "Meesvandenkieboom/agentic"
+$APP_NAME = "agentic"
 $MIN_DISK_SPACE_GB = 0.1
-$INSTALL_DIR = "$env:LOCALAPPDATA\Programs\agent-smith-app"
+$INSTALL_DIR = "$env:LOCALAPPDATA\Programs\agentic-app"
+
+# Legacy directories (for migration)
+$OLD_INSTALL_DIR = "$env:LOCALAPPDATA\Programs\agent-smith-app"
+$OLD_APP_NAME = "agent-smith"
 
 # Global state for cleanup
 $script:TempFiles = @()
@@ -193,18 +197,30 @@ function Test-DiskSpace {
 }
 
 # =============================================================================
-# Check for Existing Installation
+# Check for Existing Installation and Migration
 # =============================================================================
 
 function Test-ExistingInstallation {
+    # Check for legacy installation first
+    $script:MigrationNeeded = $false
+    if ((Test-Path $OLD_INSTALL_DIR) -and -not (Test-Path $INSTALL_DIR)) {
+        Write-Section "Legacy Installation Detected"
+        Write-Info "Found existing Agent Smith installation at:"
+        Write-Host "   $OLD_INSTALL_DIR"
+        Write-Host ""
+        Write-ColorMessage "This will be migrated to the new Agentic installation." "Cyan"
+        Write-Host ""
+        $script:MigrationNeeded = $true
+    }
+
     if (Test-Path $INSTALL_DIR) {
         Write-Section "Existing Installation Detected"
 
-        # Check if Agent Smith is running on port 3001
+        # Check if application is running on port 3001
         try {
             $connection = Test-NetConnection -ComputerName localhost -Port 3001 -InformationLevel Quiet -WarningAction SilentlyContinue
             if ($connection) {
-                Write-Warning "Agent Smith appears to be running (port 3001 in use)"
+                Write-Warning "Agentic appears to be running (port 3001 in use)"
                 Write-Host ""
                 $stopRunning = Read-Host "Stop the running instance and upgrade? [y/N]"
 
@@ -222,11 +238,11 @@ function Test-ExistingInstallation {
                         Start-Sleep -Seconds 1
                         Write-Success "Stopped running instance"
                     } catch {
-                        Write-Warning "Could not automatically stop the process. Please close Agent Smith manually."
+                        Write-Warning "Could not automatically stop the process. Please close Agentic manually."
                     }
                 } else {
                     Invoke-FatalError "Installation cancelled" `
-                        "Stop Agent Smith manually and try again"
+                        "Stop Agentic manually and try again"
                 }
             }
         } catch {
@@ -241,6 +257,10 @@ function Test-ExistingInstallation {
         }
 
         Write-Info "This will upgrade your existing installation"
+        Write-Host ""
+    } elseif ($script:MigrationNeeded) {
+        # Migration scenario
+        Write-Info "Preparing to migrate data..."
         Write-Host ""
     } else {
         Write-Section "New Installation"
@@ -303,7 +323,7 @@ function Get-LatestRelease {
 # =============================================================================
 
 function Get-ReleasePackage {
-    Write-Section "Downloading Agent Smith $script:Version"
+    Write-Section "Downloading Agentic $script:Version"
 
     $script:DownloadPath = "$env:TEMP\$APP_NAME-$script:Platform-$PID.zip"
     $script:TempFiles += $script:DownloadPath
@@ -367,11 +387,95 @@ function Get-ReleasePackage {
 }
 
 # =============================================================================
+# Migrate Legacy Data
+# =============================================================================
+
+function Invoke-DataMigration {
+    if (-not $script:MigrationNeeded) {
+        return
+    }
+
+    Write-Section "Migrating Data from Agent Smith"
+
+    try {
+        # Stop any old instances
+        Write-Info "Checking for running Agent Smith instances..."
+        try {
+            $processes = Get-NetTCPConnection -LocalPort 3001 -ErrorAction SilentlyContinue |
+                Select-Object -ExpandProperty OwningProcess -Unique |
+                ForEach-Object { Get-Process -Id $_ -ErrorAction SilentlyContinue }
+
+            foreach ($proc in $processes) {
+                Stop-Process -Id $proc.Id -Force
+            }
+
+            if ($processes) {
+                Start-Sleep -Seconds 2
+                Write-Success "Stopped legacy instances"
+            }
+        } catch {
+            # No running instances
+        }
+
+        # Create new installation directory
+        New-Item -ItemType Directory -Force -Path $INSTALL_DIR | Out-Null
+
+        # Migrate important data files
+        $dataItems = @(
+            @{ Path = ".env"; Description = "API configuration" }
+            @{ Path = "data\sessions.db"; Description = "Chat sessions" }
+            @{ Path = "data\user-config.json"; Description = "User preferences" }
+        )
+
+        $migratedCount = 0
+        foreach ($item in $dataItems) {
+            $oldPath = Join-Path $OLD_INSTALL_DIR $item.Path
+            $newPath = Join-Path $INSTALL_DIR $item.Path
+
+            if (Test-Path $oldPath) {
+                $parentDir = Split-Path $newPath -Parent
+                if (-not (Test-Path $parentDir)) {
+                    New-Item -ItemType Directory -Force -Path $parentDir | Out-Null
+                }
+
+                Copy-Item $oldPath $newPath -Force
+                Write-Info "Migrated: $($item.Description)"
+                $migratedCount++
+            }
+        }
+
+        if ($migratedCount -gt 0) {
+            Write-Host ""
+            Write-Success "Migrated $migratedCount item(s) successfully"
+            Write-Host ""
+        }
+
+        # Backup the old directory
+        $backupDir = "$OLD_INSTALL_DIR.backup-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
+        Write-Info "Creating backup of old installation..."
+        Rename-Item $OLD_INSTALL_DIR $backupDir -Force
+        Write-Success "Backup created at:"
+        Write-Host "   $backupDir"
+        Write-Host ""
+        Write-ColorMessage "You can safely delete this backup after verifying Agentic works correctly." "Yellow"
+        Write-Host ""
+
+    } catch {
+        Write-Warning "Migration completed with some errors: $($_.Exception.Message)"
+        Write-Info "Your old installation at $OLD_INSTALL_DIR was preserved"
+        Write-Host ""
+    }
+}
+
+# =============================================================================
 # Extract and Install
 # =============================================================================
 
 function Install-Application {
-    Write-Section "Installing Agent Smith"
+    Write-Section "Installing Agentic"
+
+    # Perform migration if needed
+    Invoke-DataMigration
 
     # Create install directory
     Write-Info "Creating installation directory..."
@@ -385,7 +489,7 @@ function Install-Application {
     # Extract archive
     Write-Info "Extracting files..."
 
-    # The zip contains a directory named agent-smith-{platform}
+    # The zip contains a directory named agentic-{platform}
     $extractPath = "$env:TEMP\$APP_NAME-$script:Platform"
     $script:TempFiles += $extractPath
 
@@ -406,8 +510,8 @@ function Install-Application {
     Write-Info "Installing files to $INSTALL_DIR..."
 
     try {
-        # Remove old files but preserve .env
-        Get-ChildItem -Path $INSTALL_DIR -Exclude '.env', '.env.backup' -ErrorAction SilentlyContinue |
+        # Remove old files but preserve .env and data directory
+        Get-ChildItem -Path $INSTALL_DIR -Exclude '.env', '.env.backup', 'data' -ErrorAction SilentlyContinue |
             Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
 
         # Move new files
@@ -530,7 +634,7 @@ function Set-ApiConfiguration {
             "4" {
                 Write-Host ""
                 Write-Warning "Skipping API configuration"
-                Write-Host "You'll need to edit $INSTALL_DIR\.env before running Agent Smith"
+                Write-Host "You'll need to edit $INSTALL_DIR\.env before running Agentic"
                 return
             }
             default {
@@ -581,7 +685,7 @@ function Set-Personalization {
 
     Write-Section "Personalization (Optional)"
 
-    Write-Host "Agent Smith can personalize your experience with your name."
+    Write-Host "Agentic can personalize your experience with your name."
     Write-Host ""
     $userName = Read-Host "Enter your name (or press Enter to skip)"
 
@@ -612,7 +716,7 @@ function Set-Personalization {
         Write-Success "Personalization configured"
         Write-Info "Your name will appear in the interface as: $userName"
     } else {
-        Write-Info "Skipped personalization (you can run 'agent-smith --setup' later)"
+        Write-Info "Skipped personalization (you can run 'agentic --setup' later)"
     }
 }
 
@@ -646,15 +750,15 @@ function Add-ToPath {
 # =============================================================================
 
 function Show-SuccessMessage {
-    Write-Section "Installation Successful! 🎉"
+    Write-Section "Installation Successful!"
 
-    Write-ColorMessage "Agent Smith $script:Version has been installed successfully!" "Green"
+    Write-ColorMessage "Agentic $script:Version has been installed successfully!" "Green"
     Write-Host ""
-    Write-ColorMessage "📍 Installation Location:" "Cyan"
+    Write-ColorMessage "Installation Location:" "Cyan"
     Write-Host "   $INSTALL_DIR"
     Write-Host ""
 
-    Write-ColorMessage "🚀 How to Start Agent Smith:" "Cyan"
+    Write-ColorMessage "How to Start Agentic:" "Cyan"
     Write-Host ""
 
     if ($script:NeedsRestart) {
@@ -662,22 +766,22 @@ function Show-SuccessMessage {
         Write-ColorMessage "  2. Type: " "Yellow" -NoNewline
         Write-ColorMessage "$APP_NAME" "Green"
         Write-Host ""
-        Write-ColorMessage "  ℹ  Or start immediately: " "Cyan" -NoNewline
+        Write-ColorMessage "  Or start immediately: " "Cyan" -NoNewline
         Write-ColorMessage "$INSTALL_DIR\$APP_NAME.exe" "Green"
     } else {
-        Write-ColorMessage "  → Just type: " "Yellow" -NoNewline
+        Write-ColorMessage "  Just type: " "Yellow" -NoNewline
         Write-ColorMessage "$APP_NAME" "Green"
         Write-Host ""
-        Write-ColorMessage "  → Or double-click: " "Yellow" -NoNewline
+        Write-ColorMessage "  Or double-click: " "Yellow" -NoNewline
         Write-Host "$INSTALL_DIR\$APP_NAME.exe"
     }
 
     Write-Host ""
-    Write-ColorMessage "🌐 The app will start at: " "Cyan" -NoNewline
+    Write-ColorMessage "The app will start at: " "Cyan" -NoNewline
     Write-ColorMessage "http://localhost:3001" "Blue"
     Write-Host ""
 
-    Write-ColorMessage "📄 License: " "Cyan" -NoNewline
+    Write-ColorMessage "License: " "Cyan" -NoNewline
     Write-Host "GNU AGPL-3.0 (Free & Open Source)"
     Write-ColorMessage "   Learn more: " "Cyan" -NoNewline
     Write-ColorMessage "https://www.gnu.org/licenses/agpl-3.0.html" "Blue"
@@ -695,7 +799,7 @@ function Start-Installation {
     # Print banner
     Write-Host ""
     Write-ColorMessage "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" "Cyan"
-    Write-ColorMessage "   Agent Smith Installer" "Cyan"
+    Write-ColorMessage "   Agentic Installer" "Cyan"
     Write-ColorMessage "   Production-Grade Installation Script" "Cyan"
     Write-ColorMessage "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" "Cyan"
     Write-Host ""

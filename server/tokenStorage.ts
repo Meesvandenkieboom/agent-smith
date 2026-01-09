@@ -1,12 +1,36 @@
 import fs from 'fs/promises';
+import fsSync from 'fs';
 import path from 'path';
 import { OAuthTokens } from './oauth';
 
-const CONFIG_DIR = path.join(process.env.HOME || process.env.USERPROFILE || '.', '.agent-smith');
+// New config directory
+const CONFIG_DIR = path.join(process.env.HOME || process.env.USERPROFILE || '.', '.agentic');
 const TOKEN_FILE = path.join(CONFIG_DIR, 'oauth-tokens.json');
+
+// Legacy config directory for migration
+const LEGACY_CONFIG_DIR = path.join(process.env.HOME || process.env.USERPROFILE || '.', '.agent-smith');
+const LEGACY_TOKEN_FILE = path.join(LEGACY_CONFIG_DIR, 'oauth-tokens.json');
 
 export interface StoredAuth {
   anthropic?: OAuthTokens;
+}
+
+/**
+ * Migrate tokens from legacy .agent-smith directory to .agentic
+ */
+async function migrateLegacyTokens(): Promise<void> {
+  try {
+    // Check if legacy tokens exist and new ones don't
+    if (fsSync.existsSync(LEGACY_TOKEN_FILE) && !fsSync.existsSync(TOKEN_FILE)) {
+      // Ensure new directory exists
+      await fs.mkdir(CONFIG_DIR, { recursive: true });
+      // Copy tokens to new location
+      await fs.copyFile(LEGACY_TOKEN_FILE, TOKEN_FILE);
+      console.log('✅ Migrated OAuth tokens from ~/.agent-smith to ~/.agentic');
+    }
+  } catch {
+    // Migration failed, will just use new directory
+  }
 }
 
 /**
@@ -14,6 +38,8 @@ export interface StoredAuth {
  */
 async function ensureConfigDir(): Promise<void> {
   try {
+    // First try to migrate legacy tokens
+    await migrateLegacyTokens();
     await fs.mkdir(CONFIG_DIR, { recursive: true });
   } catch {
     // Directory might already exist, that's OK

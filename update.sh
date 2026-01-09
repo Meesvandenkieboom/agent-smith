@@ -2,7 +2,7 @@
 set -e
 
 # =============================================================================
-# Agent Smith Update Script - Smart, Minimal Updates Only
+# Agentic Update Script - Smart, Minimal Updates Only
 # =============================================================================
 
 # Colors
@@ -14,7 +14,7 @@ CYAN='\033[0;36m'
 NC='\033[0m'
 
 # Configuration
-REPO="Meesvandenkieboom/agent-smith"
+REPO="Meesvandenkieboom/agentic"
 BRANCH="main"
 GITHUB_REPO_URL="https://github.com/${REPO}.git"
 
@@ -22,16 +22,20 @@ GITHUB_REPO_URL="https://github.com/${REPO}.git"
 OS=$(uname -s)
 case $OS in
   Darwin)
-    INSTALL_DIR="$HOME/Applications/agent-smith-app"
+    INSTALL_DIR="$HOME/Applications/agentic-app"
+    OLD_INSTALL_DIR="$HOME/Applications/agent-smith-app"
     ;;
   Linux)
-    INSTALL_DIR="$HOME/.local/share/agent-smith-app"
+    INSTALL_DIR="$HOME/.local/share/agentic-app"
+    OLD_INSTALL_DIR="$HOME/.local/share/agent-smith-app"
     ;;
   MINGW*|MSYS*|CYGWIN*)
     if [[ -n "$LOCALAPPDATA" ]]; then
-      INSTALL_DIR="$LOCALAPPDATA/Programs/agent-smith-app"
+      INSTALL_DIR="$LOCALAPPDATA/Programs/agentic-app"
+      OLD_INSTALL_DIR="$LOCALAPPDATA/Programs/agent-smith-app"
     else
-      INSTALL_DIR="$USERPROFILE/AppData/Local/Programs/agent-smith-app"
+      INSTALL_DIR="$USERPROFILE/AppData/Local/Programs/agentic-app"
+      OLD_INSTALL_DIR="$USERPROFILE/AppData/Local/Programs/agent-smith-app"
     fi
     ;;
   *)
@@ -61,11 +65,19 @@ log_section() {
 }
 
 # =============================================================================
-# Check Installation
+# Check Installation and Migration
 # =============================================================================
 
+# Check if old Agent Smith installation needs migration
+if [[ ! -d "$INSTALL_DIR" ]] && [[ -d "$OLD_INSTALL_DIR" ]]; then
+  log_error "Agent Smith installation found, but not yet migrated to Agentic"
+  echo ""
+  log_info "Please run the installer to migrate: curl -fsSL https://raw.githubusercontent.com/$REPO/main/install.sh | bash"
+  exit 1
+fi
+
 if [[ ! -d "$INSTALL_DIR" ]]; then
-  log_error "Agent Smith is not installed at $INSTALL_DIR"
+  log_error "Agentic is not installed at $INSTALL_DIR"
   echo ""
   log_info "Run the installer first: curl -fsSL https://raw.githubusercontent.com/$REPO/main/install.sh | bash"
   exit 1
@@ -77,14 +89,14 @@ fi
 
 echo ""
 echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "${CYAN}   Agent Smith - Smart Update${NC}"
+echo -e "${CYAN}   Agentic - Smart Update${NC}"
 echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 
 # Clone to temp directory
 log_section "Downloading Latest Version"
 
-CLONE_DIR="/tmp/agent-smith-update-$$"
+CLONE_DIR="/tmp/agentic-update-$$"
 log_info "Cloning from $BRANCH branch..."
 
 if git clone --quiet --depth 1 --branch "$BRANCH" "$GITHUB_REPO_URL" "$CLONE_DIR" 2>&1; then
@@ -160,53 +172,64 @@ GITHUB_TOKEN_BACKUP=""
 log_info "Backing up user settings..."
 
 if [[ -f "$INSTALL_DIR/.env" ]]; then
-  ENV_BACKUP="/tmp/agent-smith-env-$$"
+  ENV_BACKUP="/tmp/agentic-env-$$"
   cp "$INSTALL_DIR/.env" "$ENV_BACKUP"
   log_info "Backed up .env"
 fi
 
 if [[ -f "$INSTALL_DIR/server/.env" ]]; then
-  SERVER_ENV_BACKUP="/tmp/agent-smith-server-env-$$"
+  SERVER_ENV_BACKUP="/tmp/agentic-server-env-$$"
   cp "$INSTALL_DIR/server/.env" "$SERVER_ENV_BACKUP"
   log_info "Backed up server/.env (GitHub credentials)"
 fi
 
 if [[ -d "$INSTALL_DIR/data" ]]; then
-  DATA_BACKUP="/tmp/agent-smith-data-$$"
+  DATA_BACKUP="/tmp/agentic-data-$$"
   cp -r "$INSTALL_DIR/data" "$DATA_BACKUP"
   log_info "Backed up data directory"
 fi
 
 if [[ -f "$INSTALL_DIR/.tokens" ]]; then
-  TOKENS_BACKUP="/tmp/agent-smith-tokens-$$"
+  TOKENS_BACKUP="/tmp/agentic-tokens-$$"
   cp "$INSTALL_DIR/.tokens" "$TOKENS_BACKUP"
   log_info "Backed up OAuth tokens"
 fi
 
 # Backup .claude directory (MCP configs, agents, settings)
 if [[ -d "$INSTALL_DIR/.claude" ]]; then
-  CLAUDE_DIR_BACKUP="/tmp/agent-smith-claude-$$"
+  CLAUDE_DIR_BACKUP="/tmp/agentic-claude-$$"
   cp -r "$INSTALL_DIR/.claude" "$CLAUDE_DIR_BACKUP"
   log_info "Backed up .claude directory (MCP servers, agents, settings)"
 fi
 
-# Backup GitHub token from app data directory
+# Determine app data directories
 case $OS in
   Darwin)
-    APP_DATA_DIR="$HOME/Documents/agent-smith-app"
+    APP_DATA_DIR="$HOME/Documents/agentic-app"
+    OLD_APP_DATA_DIR="$HOME/Documents/agent-smith-app"
     ;;
   Linux)
-    APP_DATA_DIR="$HOME/Documents/agent-smith-app"
+    APP_DATA_DIR="$HOME/Documents/agentic-app"
+    OLD_APP_DATA_DIR="$HOME/Documents/agent-smith-app"
     ;;
   MINGW*|MSYS*|CYGWIN*)
-    APP_DATA_DIR="$USERPROFILE/Documents/agent-smith-app"
+    APP_DATA_DIR="$USERPROFILE/Documents/agentic-app"
+    OLD_APP_DATA_DIR="$USERPROFILE/Documents/agent-smith-app"
     ;;
 esac
 
+# Backup GitHub token from current app data directory
 if [[ -f "$APP_DATA_DIR/github-token.json" ]]; then
-  GITHUB_TOKEN_BACKUP="/tmp/agent-smith-github-token-$$"
+  GITHUB_TOKEN_BACKUP="/tmp/agentic-github-token-$$"
   cp "$APP_DATA_DIR/github-token.json" "$GITHUB_TOKEN_BACKUP"
   log_info "Backed up GitHub token"
+fi
+
+# Migrate GitHub token from old Agent Smith directory if it exists
+if [[ -z "$GITHUB_TOKEN_BACKUP" ]] && [[ -f "$OLD_APP_DATA_DIR/github-token.json" ]]; then
+  GITHUB_TOKEN_BACKUP="/tmp/agentic-github-token-$$"
+  cp "$OLD_APP_DATA_DIR/github-token.json" "$GITHUB_TOKEN_BACKUP"
+  log_info "Migrated GitHub token from Agent Smith"
 fi
 
 # Remove old files (except user data)
@@ -270,7 +293,7 @@ rm -rf "$CLONE_DIR"
 # Success
 log_section "Update Complete! 🎉"
 
-echo -e "${GREEN}Agent Smith has been updated successfully!${NC}"
+echo -e "${GREEN}Agentic has been updated successfully!${NC}"
 echo ""
 echo -e "${BLUE}📍 Installation:${NC} $INSTALL_DIR"
 echo ""
@@ -282,15 +305,15 @@ elif [[ -f "$INSTALL_DIR/.tokens" ]]; then
   echo -e "${GREEN}✓${NC} OAuth authentication active"
 else
   echo -e "${YELLOW}⚠${NC} No authentication configured"
-  echo -e "  Run: ${GREEN}agent-smith --login${NC} or configure API keys in .env"
+  echo -e "  Run: ${GREEN}agentic --login${NC} or configure API keys in .env"
 fi
 
 echo ""
-echo -e "${BLUE}🚀 Start Agent Smith:${NC}"
+echo -e "${BLUE}🚀 Start Agentic:${NC}"
 
 # Check if global command exists
-if command -v agent-smith &> /dev/null; then
-  echo -e "  → ${GREEN}agent-smith${NC}"
+if command -v agentic &> /dev/null; then
+  echo -e "  → ${GREEN}agentic${NC}"
 else
   echo -e "  → ${GREEN}cd $INSTALL_DIR && bun run server/server.ts${NC}"
 fi

@@ -1,5 +1,5 @@
 /**
- * Agent Smith - Modern chat interface for Claude Agent SDK
+ * Agentic - Modern chat interface for Claude Agent SDK
  * Copyright (C) 2025 KenKai
  *
  * SPDX-License-Identifier: AGPL-3.0-or-later
@@ -82,8 +82,10 @@ function getWindowsUsername(): string | null {
 
 /**
  * Get the default working directory for agent operations
- * Cross-platform: ~/Documents/agent-smith (Mac/Linux) or C:\Users\{user}\Documents\agent-smith (Windows)
- * WSL: Uses Windows path (/mnt/c/Users/{user}/Documents/agent-smith)
+ * Cross-platform: ~/Documents/agentic (Mac/Linux) or C:\Users\{user}\Documents\agentic (Windows)
+ * WSL: Uses Windows path (/mnt/c/Users/{user}/Documents/agentic)
+ *
+ * NOTE: Includes automatic migration from legacy 'agent-smith' directories
  */
 export function getDefaultWorkingDirectory(): string {
   let homeDir = os.homedir();
@@ -97,25 +99,44 @@ export function getDefaultWorkingDirectory(): string {
     }
   }
 
-  const defaultDir = path.join(homeDir, 'Documents', 'agent-smith');
+  const newDir = path.join(homeDir, 'Documents', 'agentic');
+  const legacyDir = path.join(homeDir, 'Documents', 'agent-smith');
 
-  // Startup logs are now consolidated in server.ts
-  // console.log('🏠 Platform:', os.platform());
-  // console.log('🏠 Home directory:', homeDir);
-  // console.log('🏠 Default working directory:', defaultDir);
+  // Auto-migrate from legacy directory if it exists and new one doesn't
+  if (fs.existsSync(legacyDir) && !fs.existsSync(newDir)) {
+    try {
+      fs.cpSync(legacyDir, newDir, { recursive: true });
+      console.log('✅ Migrated data from ~/Documents/agent-smith to ~/Documents/agentic');
+    } catch (error) {
+      console.warn('⚠️  Could not auto-migrate legacy directory, using new path');
+    }
+  }
 
-  return defaultDir;
+  return newDir;
 }
 
 /**
  * Get the app data directory for storing database and app files
- * Cross-platform: ~/Documents/agent-smith-app
+ * Cross-platform: ~/Documents/agentic-app
+ *
+ * NOTE: Includes automatic migration from legacy 'agent-smith-app' directory
  */
 export function getAppDataDirectory(): string {
   const homeDir = os.homedir();
-  const appDataDir = path.join(homeDir, 'Documents', 'agent-smith-app');
+  const newDir = path.join(homeDir, 'Documents', 'agentic-app');
+  const legacyDir = path.join(homeDir, 'Documents', 'agent-smith-app');
 
-  return appDataDir;
+  // Auto-migrate from legacy directory if it exists and new one doesn't
+  if (fs.existsSync(legacyDir) && !fs.existsSync(newDir)) {
+    try {
+      fs.cpSync(legacyDir, newDir, { recursive: true });
+      console.log('✅ Migrated app data from ~/Documents/agent-smith-app to ~/Documents/agentic-app');
+    } catch (error) {
+      console.warn('⚠️  Could not auto-migrate legacy app data directory');
+    }
+  }
+
+  return newDir;
 }
 
 /**
@@ -272,7 +293,7 @@ export function getPlatformInfo(): {
  * Phase 0.1: Separates metadata from workspace to fix CLAUDE.md deletion bug
  */
 export interface SessionPaths {
-  root: string;           // ~/Documents/agent-smith/chat-{id}
+  root: string;           // ~/Documents/agentic/chat-{id}
   claudeDir: string;      // root/.claude (SDK metadata)
   metadata: string;       // root/metadata (chat-specific files)
   claudeMd: string;       // root/metadata/CLAUDE.md

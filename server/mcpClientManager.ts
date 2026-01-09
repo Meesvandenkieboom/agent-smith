@@ -1,5 +1,5 @@
 /**
- * Agent Smith - Modern chat interface for Claude Agent SDK
+ * Agentic - Modern chat interface for Claude Agent SDK
  * Copyright (C) 2025 KenKai
  *
  * SPDX-License-Identifier: AGPL-3.0-or-later
@@ -196,7 +196,7 @@ class MCPClientManager {
         protocolVersion: '2024-11-05',
         capabilities: {},
         clientInfo: {
-          name: 'agent-smith',
+          name: 'agentic',
           version: '1.0.0',
         },
       });

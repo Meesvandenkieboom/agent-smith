@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <defs>
+    <!-- Main gradient for the ring - white to blue -->
+    <linearGradient id="ringGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="1"/>
+      <stop offset="30%" stop-color="#e0f2ff" stop-opacity="1"/>
+      <stop offset="60%" stop-color="#60a5fa" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#3b82f6" stop-opacity="1"/>
+    </linearGradient>
+
+    <!-- Inner glow gradient -->
+    <radialGradient id="innerGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#bfdbfe" stop-opacity="0.6"/>
+      <stop offset="70%" stop-color="#3b82f6" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#1e40af" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Outer glow/shadow -->
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- 3D depth shadow -->
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="2" dy="3" stdDeviation="2" flood-color="#1e3a8a" flood-opacity="0.35"/>
+    </filter>
+
+    <!-- Accent dots gradient -->
+    <radialGradient id="dotGradient" cx="50%" cy="30%" r="60%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#60a5fa"/>
+    </radialGradient>
+
+    <!-- Blue arc gradient -->
+    <linearGradient id="arcGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#93c5fd"/>
+      <stop offset="50%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#1d4ed8"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background subtle glow -->
+  <circle cx="50" cy="50" r="42" fill="url(#innerGlow)" opacity="0.5"/>
+
+  <!-- Main donut ring with 3D effect -->
+  <g filter="url(#shadow)">
+    <circle cx="50" cy="50" r="38" fill="none" stroke="url(#ringGradient)" stroke-width="12" filter="url(#glow)"/>
+  </g>
+
+  <!-- Accent arcs -->
+  <path d="M 50 15 A 35 35 0 0 1 85 50" fill="none" stroke="url(#arcGradient)" stroke-width="3" stroke-linecap="round" opacity="0.8"/>
+  <path d="M 50 85 A 35 35 0 0 1 15 50" fill="none" stroke="url(#arcGradient)" stroke-width="3" stroke-linecap="round" opacity="0.8"/>
+
+  <!-- Accent dots -->
+  <circle cx="50" cy="12" r="4" fill="url(#dotGradient)" filter="url(#glow)"/>
+  <circle cx="88" cy="50" r="3" fill="url(#dotGradient)" filter="url(#glow)" opacity="0.8"/>
+  <circle cx="50" cy="88" r="3.5" fill="url(#dotGradient)" filter="url(#glow)" opacity="0.9"/>
+
+  <!-- Center core glow -->
+  <circle cx="50" cy="50" r="18" fill="none" stroke="#bfdbfe" stroke-width="1" opacity="0.5"/>
+
+  <!-- Inner ring detail -->
+  <circle cx="50" cy="50" r="26" fill="none" stroke="#60a5fa" stroke-width="1" stroke-dasharray="4 8" opacity="0.5"/>
+</svg>

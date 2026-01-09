@@ -7,7 +7,7 @@ const args = process.argv.slice(2);
 const command = args[0];
 
 async function handleLogin() {
-  console.log('\n🔐 Agent Smith - Claude OAuth Login\n');
+  console.log('\n🔐 Agentic - Claude OAuth Login\n');
 
   // Check if already logged in
   const alreadyLoggedIn = await isLoggedIn();
@@ -79,7 +79,7 @@ async function handleLogin() {
 }
 
 async function handleLogout() {
-  console.log('\n👋 Agent Smith - Claude OAuth Logout\n');
+  console.log('\n👋 Agentic - Claude OAuth Logout\n');
 
   const loggedIn = await isLoggedIn();
   if (!loggedIn) {
@@ -107,7 +107,7 @@ async function handleLogout() {
 }
 
 async function handleStatus() {
-  console.log('\n📊 Agent Smith - Auth Status\n');
+  console.log('\n📊 Agentic - Auth Status\n');
 
   const loggedIn = await isLoggedIn();
 
@@ -129,7 +129,7 @@ async function handleStatus() {
 }
 
 async function handleUpdate() {
-  console.log('\n🔄 Agent Smith - Update\n');
+  console.log('\n🔄 Agentic - Update\n');
 
   const rl = readline.createInterface({
     input: process.stdin,
@@ -153,7 +153,7 @@ async function handleUpdate() {
     // Use Bun's built-in fetch to download the update script
     // Add cache-busting parameter to ensure we get the latest version
     const cacheBuster = Date.now();
-    const response = await fetch(`https://raw.githubusercontent.com/Meesvandenkieboom/agent-smith/main/update.sh?${cacheBuster}`);
+    const response = await fetch(`https://raw.githubusercontent.com/Meesvandenkieboom/agentic/main/update.sh?${cacheBuster}`);
 
     if (!response.ok) {
       throw new Error(`Failed to download update script: ${response.status} ${response.statusText}`);
@@ -162,7 +162,7 @@ async function handleUpdate() {
     const updateScript = await response.text();
 
     // Write to a temporary file
-    const tmpFile = '/tmp/agent-smith-update.sh';
+    const tmpFile = '/tmp/agentic-update.sh';
     await Bun.write(tmpFile, updateScript);
 
     console.log('📦 Running update...\n');
@@ -194,7 +194,7 @@ async function handleUpdate() {
 
 function showHelp() {
   console.log(`
-🤖 Agent Smith - CLI
+🤖 Agentic - CLI
 
 Commands:
   --login        Log in with Claude Pro/Max subscription (OAuth)
@@ -209,7 +209,7 @@ Examples:
   bun run cli.ts --status
   bun run cli.ts --update
 
-Note: Use 'agent-smith' command to launch the app (standalone binary).
+Note: Use 'agentic' command to launch the app (standalone binary).
 `);
 }
 

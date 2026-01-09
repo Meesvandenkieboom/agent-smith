@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-echo "🔨 Building Agent Smith (Source Distribution)"
+echo "🔨 Building Agentic (Source Distribution)"
 echo
 
 # Detect platform
@@ -23,7 +23,7 @@ echo "📦 Platform: $PLATFORM"
 
 # Clean and create release directory
 rm -rf release
-mkdir -p release/agent-smith-$PLATFORM
+mkdir -p release/agentic-$PLATFORM
 
 # Build client bundle
 echo "🏗️  Building client..."
@@ -31,26 +31,26 @@ bun run build
 
 # Copy source files
 echo "📂 Copying source files..."
-cp -r server release/agent-smith-$PLATFORM/
-cp -r client release/agent-smith-$PLATFORM/
-cp -r dist release/agent-smith-$PLATFORM/
-cp cli.ts release/agent-smith-$PLATFORM/
-cp package.json release/agent-smith-$PLATFORM/
-cp bun.lockb release/agent-smith-$PLATFORM/ 2>/dev/null || true
-cp LICENSE release/agent-smith-$PLATFORM/
-cp credits.mp3 release/agent-smith-$PLATFORM/ 2>/dev/null || true
-cp tailwind.config.js release/agent-smith-$PLATFORM/ 2>/dev/null || true
-cp postcss.config.mjs release/agent-smith-$PLATFORM/ 2>/dev/null || true
-cp tsconfig.json release/agent-smith-$PLATFORM/ 2>/dev/null || true
+cp -r server release/agentic-$PLATFORM/
+cp -r client release/agentic-$PLATFORM/
+cp -r dist release/agentic-$PLATFORM/
+cp cli.ts release/agentic-$PLATFORM/
+cp package.json release/agentic-$PLATFORM/
+cp bun.lockb release/agentic-$PLATFORM/ 2>/dev/null || true
+cp LICENSE release/agentic-$PLATFORM/
+cp credits.mp3 release/agentic-$PLATFORM/ 2>/dev/null || true
+cp tailwind.config.js release/agentic-$PLATFORM/ 2>/dev/null || true
+cp postcss.config.mjs release/agentic-$PLATFORM/ 2>/dev/null || true
+cp tsconfig.json release/agentic-$PLATFORM/ 2>/dev/null || true
 
 # Install dependencies
 echo "📦 Installing dependencies..."
-cd release/agent-smith-$PLATFORM
+cd release/agentic-$PLATFORM
 bun install --production
 cd ../..
 
 # Create .env template
-cat > release/agent-smith-$PLATFORM/.env << 'EOF'
+cat > release/agentic-$PLATFORM/.env << 'EOF'
 # =============================================================================
 # Anthropic Configuration (Claude Models)
 # =============================================================================
@@ -66,7 +66,7 @@ ZAI_API_KEY=your-zai-key-here
 EOF
 
 # Create launcher script
-cat > release/agent-smith-$PLATFORM/agent-smith << 'EOF'
+cat > release/agentic-$PLATFORM/agentic << 'EOF'
 #!/bin/bash
 set -e
 
@@ -82,7 +82,7 @@ cd "$SCRIPT_DIR"
 if ! command -v node &> /dev/null; then
     echo "❌ Node.js not found!"
     echo ""
-    echo "Agent Smith requires Node.js v18+ for the Claude SDK."
+    echo "Agentic requires Node.js v18+ for the Claude SDK."
     echo "Install from: https://nodejs.org"
     echo ""
     exit 1
@@ -102,7 +102,7 @@ if grep -qi microsoft /proc/version 2>/dev/null; then
     if [[ "$NODE_PATH" == *"/mnt/c/"* ]] || [[ "$NODE_PATH" == *.exe ]]; then
         echo "❌ Windows Node.js detected in WSL!"
         echo ""
-        echo "You have Windows Node in your PATH, but Agent Smith needs native WSL Node."
+        echo "You have Windows Node in your PATH, but Agentic needs native WSL Node."
         echo "Please install Node.js for WSL:"
         echo "  curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -"
         echo "  sudo apt-get install -y nodejs"
@@ -149,22 +149,22 @@ if [ ! -f "node_modules/@anthropic-ai/claude-agent-sdk/cli.js" ]; then
 fi
 
 # Start the server
-echo "🚀 Starting Agent Smith..."
+echo "🚀 Starting Agentic..."
 echo
 exec bun run server/server.ts "$@"
 EOF
 
-chmod +x release/agent-smith-$PLATFORM/agent-smith
+chmod +x release/agentic-$PLATFORM/agentic
 
 # Create README
-cat > release/agent-smith-$PLATFORM/README.txt << 'EOF'
-Agent Smith Application - macOS
+cat > release/agentic-$PLATFORM/README.txt << 'EOF'
+Agentic Application - macOS
 ==============================
 
 Authentication Setup (Choose ONE):
 
 OPTION 1: Claude Pro/Max Subscription (Recommended - $0 API costs)
-1. Run: agent-smith --login
+1. Run: agentic --login
 2. Your browser will open for authentication
 3. Copy the authorization code and paste it in terminal
 4. Done! Your subscription will be used instead of API credits
@@ -176,23 +176,23 @@ OPTION 2: API Key
    With: ANTHROPIC_API_KEY=sk-ant-your-actual-key
 
 To Run:
-- Run from terminal: agent-smith
-- Or double-click the 'agent-smith' file
+- Run from terminal: agentic
+- Or double-click the 'agentic' file
 - The app will start at http://localhost:3001
 - Your browser should open automatically
 
 OAuth Commands:
-- agent-smith --login      # Login with Claude Pro/Max
-- agent-smith --logout     # Logout from OAuth
-- agent-smith --status     # Check authentication status
+- agentic --login      # Login with Claude Pro/Max
+- agentic --logout     # Logout from OAuth
+- agentic --status     # Check authentication status
 
 First Run:
 - On first launch, Bun runtime will be auto-installed (takes ~5 seconds)
 - Subsequent launches are instant
 
 Data Storage:
-- Sessions stored in ~/Documents/agent-smith-app/
-- OAuth tokens stored in ~/.agent-smith/ (secure)
+- Sessions stored in ~/Documents/agentic-app/
+- OAuth tokens stored in ~/.agentic/ (secure)
 - All your conversations are saved locally
 
 Requirements:
@@ -203,17 +203,17 @@ Requirements:
 Troubleshooting:
 - If port 3001 is busy, kill the process: lsof -ti:3001 | xargs kill -9
 - If OAuth login fails, use API key method instead
-- Check auth status: agent-smith --status
+- Check auth status: agentic --status
 
 Enjoy!
 EOF
 
 # Create zip
 cd release
-zip -r agent-smith-$PLATFORM.zip agent-smith-$PLATFORM/
+zip -r agentic-$PLATFORM.zip agentic-$PLATFORM/
 cd ..
 
 echo
 echo "✅ Build complete!"
-echo "📦 Package: release/agent-smith-$PLATFORM.zip"
-echo "📁 Size: $(du -sh release/agent-smith-$PLATFORM.zip | cut -f1)"
+echo "📦 Package: release/agentic-$PLATFORM.zip"
+echo "📁 Size: $(du -sh release/agentic-$PLATFORM.zip | cut -f1)"

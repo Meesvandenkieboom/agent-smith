@@ -1,5 +1,5 @@
 /**
- * Agent Smith - Modern chat interface for Claude Agent SDK
+ * Agentic - Modern chat interface for Claude Agent SDK
  * Copyright (C) 2025 KenKai
  *
  * SPDX-License-Identifier: AGPL-3.0-or-later
@@ -83,7 +83,7 @@ export function ChatContainer() {
 
   // Model selection
   const [selectedModel, setSelectedModel] = useState<string>(() => {
-    return localStorage.getItem('agent-boy-model') || 'sonnet';
+    return localStorage.getItem('agentic-model') || 'sonnet';
   });
 
   // Permission mode (simplified to just plan mode on/off)
@@ -134,7 +134,7 @@ export function ChatContainer() {
   // Auto-switch to hive mode when HIVE model is selected
   const handleModelChange = (modelId: string) => {
     setSelectedModel(modelId);
-    localStorage.setItem('agent-boy-model', modelId);
+    localStorage.setItem('agentic-model', modelId);
 
     // Auto-switch mode for HIVE model
     if (modelId === 'hive') {
@@ -1247,21 +1247,21 @@ export function ChatContainer() {
                   <div className="flex items-center gap-3">
                     {!isSidebarOpen && (
                       <img
-                        src="/client/agent-boy.svg"
-                        alt="Agent Smith"
+                        src="/client/agentic-icon.svg"
+                        alt="Agentic"
                         className="header-icon"
                         loading="eager"
                         onError={(e) => {
-                          console.error('Failed to load agent-boy.svg');
+                          console.error('Failed to load agentic-icon.svg');
                           // Retry loading
                           setTimeout(() => {
-                            e.currentTarget.src = '/client/agent-boy.svg?' + Date.now();
+                            e.currentTarget.src = '/client/agentic-icon.svg?' + Date.now();
                           }, 100);
                         }}
                       />
                     )}
                     <div className="header-title text-gradient">
-                      Agent Smith
+                      Agentic
                     </div>
                     {/* Model Selector */}
                     <ModelSelector

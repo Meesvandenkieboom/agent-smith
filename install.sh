@@ -2,7 +2,7 @@
 set -e
 
 # =============================================================================
-# Agent Smith Installer - Production Grade (Source Install)
+# Agentic Installer - Production Grade (Source Install)
 # =============================================================================
 # Clones from source, builds, and installs with full error handling
 # =============================================================================
@@ -16,8 +16,8 @@ CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 # Configuration
-REPO="Meesvandenkieboom/agent-smith"
-APP_NAME="agent-smith"
+REPO="Meesvandenkieboom/agentic"
+APP_NAME="agentic"
 BRANCH="main"
 MIN_DISK_SPACE_MB=200
 GITHUB_REPO_URL="https://github.com/${REPO}.git"
@@ -182,20 +182,24 @@ detect_platform() {
     Darwin)
       OS_NAME="macOS"
       OS_PREFIX="macos"
-      INSTALL_DIR="$HOME/Applications/agent-smith-app"
+      INSTALL_DIR="$HOME/Applications/agentic-app"
+      OLD_INSTALL_DIR="$HOME/Applications/agent-smith-app"
       ;;
     Linux)
       OS_NAME="Linux"
       OS_PREFIX="linux"
-      INSTALL_DIR="$HOME/.local/share/agent-smith-app"
+      INSTALL_DIR="$HOME/.local/share/agentic-app"
+      OLD_INSTALL_DIR="$HOME/.local/share/agent-smith-app"
       ;;
     MINGW*|MSYS*|CYGWIN*)
       OS_NAME="Windows (Git Bash)"
       OS_PREFIX="windows"
       if [[ -n "$LOCALAPPDATA" ]]; then
-        INSTALL_DIR="$LOCALAPPDATA/Programs/agent-smith-app"
+        INSTALL_DIR="$LOCALAPPDATA/Programs/agentic-app"
+        OLD_INSTALL_DIR="$LOCALAPPDATA/Programs/agent-smith-app"
       else
-        INSTALL_DIR="$USERPROFILE/AppData/Local/Programs/agent-smith-app"
+        INSTALL_DIR="$USERPROFILE/AppData/Local/Programs/agentic-app"
+        OLD_INSTALL_DIR="$USERPROFILE/AppData/Local/Programs/agent-smith-app"
       fi
       ;;
     *)
@@ -232,17 +236,35 @@ check_disk_space() {
 }
 
 # =============================================================================
-# Check for Existing Installation
+# Check for Existing Installation and Migration
 # =============================================================================
 
 check_existing_installation() {
+  # Check if old Agent Smith installation exists
+  if [[ -d "$OLD_INSTALL_DIR" ]] && [[ ! -d "$INSTALL_DIR" ]]; then
+    log_section "Agent Smith Installation Detected"
+
+    log_info "An Agent Smith installation was found"
+    log_info "Old location: $OLD_INSTALL_DIR"
+    echo ""
+    read -p "Migrate data to Agentic? [Y/n]: " migrate_data < /dev/tty
+
+    if [[ ! "$migrate_data" =~ ^[Nn]$ ]]; then
+      MIGRATE_FROM_OLD=true
+      log_success "Will migrate data during installation"
+    else
+      log_warning "Old installation will be preserved as backup"
+    fi
+    echo ""
+  fi
+
   if [[ -d "$INSTALL_DIR" ]]; then
     log_section "Existing Installation Detected"
 
     # Check if there's a running process
     if [[ "$OS_PREFIX" == "macos" || "$OS_PREFIX" == "linux" ]]; then
       if lsof -ti:3001 > /dev/null 2>&1; then
-        log_warning "Agent Smith appears to be running (port 3001 in use)"
+        log_warning "Agentic appears to be running (port 3001 in use)"
         echo ""
         read -p "Stop the running instance and upgrade? [y/N]: " stop_running < /dev/tty
 
@@ -252,7 +274,7 @@ check_existing_installation() {
           log_success "Stopped running instance"
         else
           fatal_error "Installation cancelled" \
-            "Stop Agent Smith manually and try again"
+            "Stop Agentic manually and try again"
         fi
       fi
     fi
@@ -270,9 +292,9 @@ check_existing_installation() {
 # =============================================================================
 
 clone_repository() {
-  log_section "Cloning Agent Smith from GitHub"
+  log_section "Cloning Agentic from GitHub"
 
-  CLONE_DIR="/tmp/agent-smith-clone-$$"
+  CLONE_DIR="/tmp/agentic-clone-$$"
   TEMP_DIRS+=("$CLONE_DIR")
 
   log_info "Cloning repository..."
@@ -325,7 +347,7 @@ install_bun() {
 # =============================================================================
 
 build_application() {
-  log_section "Building Agent Smith"
+  log_section "Building Agentic"
 
   cd "$CLONE_DIR"
 
@@ -378,7 +400,7 @@ build_application() {
 # =============================================================================
 
 install_application() {
-  log_section "Installing Agent Smith"
+  log_section "Installing Agentic"
 
   # Create install directory
   log_info "Creating installation directory..."
@@ -400,56 +422,118 @@ install_application() {
 
   # Determine app data directory for GitHub token
   local APP_DATA_DIR=""
+  local OLD_APP_DATA_DIR=""
   case $OS in
     Darwin)
-      APP_DATA_DIR="$HOME/Documents/agent-smith-app"
+      APP_DATA_DIR="$HOME/Documents/agentic-app"
+      OLD_APP_DATA_DIR="$HOME/Documents/agent-smith-app"
       ;;
     Linux)
-      APP_DATA_DIR="$HOME/Documents/agent-smith-app"
+      APP_DATA_DIR="$HOME/Documents/agentic-app"
+      OLD_APP_DATA_DIR="$HOME/Documents/agent-smith-app"
       ;;
     MINGW*|MSYS*|CYGWIN*)
-      APP_DATA_DIR="$USERPROFILE/Documents/agent-smith-app"
+      APP_DATA_DIR="$USERPROFILE/Documents/agentic-app"
+      OLD_APP_DATA_DIR="$USERPROFILE/Documents/agent-smith-app"
       ;;
   esac
 
   log_info "Backing up user settings..."
 
-  if [[ -f "$ENV_FILE" ]]; then
-    ENV_BACKUP="/tmp/agent-smith-env-backup-$$"
-    cp "$ENV_FILE" "$ENV_BACKUP"
-    log_info "Backed up .env"
+  # Migrate from old Agent Smith installation if requested
+  if [[ "$MIGRATE_FROM_OLD" == "true" ]] && [[ -d "$OLD_INSTALL_DIR" ]]; then
+    log_section "Migrating from Agent Smith"
+
+    # Migrate .env
+    if [[ -f "$OLD_INSTALL_DIR/.env" ]]; then
+      ENV_BACKUP="/tmp/agentic-env-backup-$$"
+      cp "$OLD_INSTALL_DIR/.env" "$ENV_BACKUP"
+      log_info "Migrated .env"
+    fi
+
+    # Migrate server/.env
+    if [[ -f "$OLD_INSTALL_DIR/server/.env" ]]; then
+      SERVER_ENV_BACKUP="/tmp/agentic-server-env-backup-$$"
+      cp "$OLD_INSTALL_DIR/server/.env" "$SERVER_ENV_BACKUP"
+      log_info "Migrated server/.env (GitHub credentials)"
+    fi
+
+    # Migrate data directory
+    if [[ -d "$OLD_INSTALL_DIR/data" ]]; then
+      DATA_BACKUP="/tmp/agentic-data-backup-$$"
+      cp -r "$OLD_INSTALL_DIR/data" "$DATA_BACKUP"
+      log_info "Migrated data directory (sessions)"
+    fi
+
+    # Migrate OAuth tokens
+    if [[ -f "$OLD_INSTALL_DIR/.tokens" ]]; then
+      TOKENS_BACKUP="/tmp/agentic-tokens-backup-$$"
+      cp "$OLD_INSTALL_DIR/.tokens" "$TOKENS_BACKUP"
+      log_info "Migrated OAuth tokens"
+    fi
+
+    # Migrate .claude directory
+    if [[ -d "$OLD_INSTALL_DIR/.claude" ]]; then
+      CLAUDE_DIR_BACKUP="/tmp/agentic-claude-backup-$$"
+      cp -r "$OLD_INSTALL_DIR/.claude" "$CLAUDE_DIR_BACKUP"
+      log_info "Migrated .claude directory (MCP servers, agents)"
+    fi
+
+    # Migrate GitHub token from old app data directory
+    if [[ -n "$OLD_APP_DATA_DIR" ]] && [[ -f "$OLD_APP_DATA_DIR/github-token.json" ]]; then
+      GITHUB_TOKEN_BACKUP="/tmp/agentic-github-token-backup-$$"
+      cp "$OLD_APP_DATA_DIR/github-token.json" "$GITHUB_TOKEN_BACKUP"
+      log_info "Migrated GitHub token"
+    fi
+
+    # Rename old installation as backup
+    if [[ -d "$OLD_INSTALL_DIR" ]]; then
+      mv "$OLD_INSTALL_DIR" "${OLD_INSTALL_DIR}.backup.$(date +%Y%m%d-%H%M%S)"
+      log_success "Old installation preserved as backup"
+    fi
+
+    log_success "Migration complete"
   fi
 
-  if [[ -f "$SERVER_ENV_FILE" ]]; then
-    SERVER_ENV_BACKUP="/tmp/agent-smith-server-env-backup-$$"
-    cp "$SERVER_ENV_FILE" "$SERVER_ENV_BACKUP"
-    log_info "Backed up server/.env (GitHub credentials)"
-  fi
+  # Only backup from current installation if not migrating
+  if [[ "$MIGRATE_FROM_OLD" != "true" ]]; then
+    if [[ -f "$ENV_FILE" ]]; then
+      ENV_BACKUP="/tmp/agentic-env-backup-$$"
+      cp "$ENV_FILE" "$ENV_BACKUP"
+      log_info "Backed up .env"
+    fi
 
-  if [[ -d "$DATA_DIR" ]]; then
-    DATA_BACKUP="/tmp/agent-smith-data-backup-$$"
-    cp -r "$DATA_DIR" "$DATA_BACKUP"
-    log_info "Backed up data directory"
-  fi
+    if [[ -f "$SERVER_ENV_FILE" ]]; then
+      SERVER_ENV_BACKUP="/tmp/agentic-server-env-backup-$$"
+      cp "$SERVER_ENV_FILE" "$SERVER_ENV_BACKUP"
+      log_info "Backed up server/.env (GitHub credentials)"
+    fi
 
-  if [[ -f "$TOKENS_FILE" ]]; then
-    TOKENS_BACKUP="/tmp/agent-smith-tokens-backup-$$"
-    cp "$TOKENS_FILE" "$TOKENS_BACKUP"
-    log_info "Backed up OAuth tokens"
-  fi
+    if [[ -d "$DATA_DIR" ]]; then
+      DATA_BACKUP="/tmp/agentic-data-backup-$$"
+      cp -r "$DATA_DIR" "$DATA_BACKUP"
+      log_info "Backed up data directory"
+    fi
 
-  # Backup .claude directory (MCP configs, agents, settings)
-  if [[ -d "$CLAUDE_DIR" ]]; then
-    CLAUDE_DIR_BACKUP="/tmp/agent-smith-claude-backup-$$"
-    cp -r "$CLAUDE_DIR" "$CLAUDE_DIR_BACKUP"
-    log_info "Backed up .claude directory (MCP servers, agents, settings)"
-  fi
+    if [[ -f "$TOKENS_FILE" ]]; then
+      TOKENS_BACKUP="/tmp/agentic-tokens-backup-$$"
+      cp "$TOKENS_FILE" "$TOKENS_BACKUP"
+      log_info "Backed up OAuth tokens"
+    fi
 
-  # Backup GitHub token from app data directory
-  if [[ -n "$APP_DATA_DIR" ]] && [[ -f "$APP_DATA_DIR/github-token.json" ]]; then
-    GITHUB_TOKEN_BACKUP="/tmp/agent-smith-github-token-backup-$$"
-    cp "$APP_DATA_DIR/github-token.json" "$GITHUB_TOKEN_BACKUP"
-    log_info "Backed up GitHub token"
+    # Backup .claude directory (MCP configs, agents, settings)
+    if [[ -d "$CLAUDE_DIR" ]]; then
+      CLAUDE_DIR_BACKUP="/tmp/agentic-claude-backup-$$"
+      cp -r "$CLAUDE_DIR" "$CLAUDE_DIR_BACKUP"
+      log_info "Backed up .claude directory (MCP servers, agents, settings)"
+    fi
+
+    # Backup GitHub token from app data directory
+    if [[ -n "$APP_DATA_DIR" ]] && [[ -f "$APP_DATA_DIR/github-token.json" ]]; then
+      GITHUB_TOKEN_BACKUP="/tmp/agentic-github-token-backup-$$"
+      cp "$APP_DATA_DIR/github-token.json" "$GITHUB_TOKEN_BACKUP"
+      log_info "Backed up GitHub token"
+    fi
   fi
 
   # Remove old files but preserve critical directories
@@ -656,7 +740,7 @@ EOF
     5|*)
       # Skip
       log_warning "Skipping API configuration"
-      echo "You'll need to edit ${YELLOW}$INSTALL_DIR/.env${NC} before running Agent Smith"
+      echo "You'll need to edit ${YELLOW}$INSTALL_DIR/.env${NC} before running Agentic"
 
       # Create template .env
       cat > "$INSTALL_DIR/.env" << EOF
@@ -690,7 +774,7 @@ configure_personalization() {
 
   log_section "Personalization (Optional)"
 
-  echo "Agent Smith can personalize your experience with your name."
+  echo "Agentic can personalize your experience with your name."
   echo ""
   read -p "Enter your name (or press Enter to skip): " user_name < /dev/tty
 
@@ -736,10 +820,19 @@ create_global_launcher() {
 
   # Check if global launcher already exists
   local GLOBAL_LAUNCHER_EXISTS=false
+  if [[ "$OS_PREFIX" == "windows" ]] && [[ -f "$HOME/bin/$APP_NAME" ]]; then
+    GLOBAL_LAUNCHER_EXISTS=true
+  elif [[ ("$OS_PREFIX" == "macos" || "$OS_PREFIX" == "linux") ]] && [[ -f "/usr/local/bin/$APP_NAME" ]]; then
+    GLOBAL_LAUNCHER_EXISTS=true
+  fi
+
+  # Remove old Agent Smith launcher if it exists
   if [[ "$OS_PREFIX" == "windows" ]] && [[ -f "$HOME/bin/agent-smith" ]]; then
-    GLOBAL_LAUNCHER_EXISTS=true
+    rm -f "$HOME/bin/agent-smith"
+    log_info "Removed old Agent Smith launcher"
   elif [[ ("$OS_PREFIX" == "macos" || "$OS_PREFIX" == "linux") ]] && [[ -f "/usr/local/bin/agent-smith" ]]; then
-    GLOBAL_LAUNCHER_EXISTS=true
+    sudo rm -f "/usr/local/bin/agent-smith" 2>/dev/null || rm -f "/usr/local/bin/agent-smith" 2>/dev/null || true
+    log_info "Removed old Agent Smith launcher"
   fi
 
   if [[ "$GLOBAL_LAUNCHER_EXISTS" == "true" ]]; then
@@ -825,14 +918,14 @@ cd \"$INSTALL_DIR\" && \"$BUN_PATH\" run server/server.ts \"\$@\"
 show_success_message() {
   log_section "Installation Successful! 🎉"
 
-  echo -e "${GREEN}Agent Smith has been installed successfully!${NC}"
+  echo -e "${GREEN}Agentic has been installed successfully!${NC}"
   echo ""
   echo -e "${BLUE}📍 Installation Location:${NC}"
   echo -e "   $INSTALL_DIR"
   echo ""
 
   # Platform-specific launch instructions
-  echo -e "${BLUE}🚀 How to Start Agent Smith:${NC}"
+  echo -e "${BLUE}🚀 How to Start Agentic:${NC}"
   echo ""
 
   if [[ "$OS_PREFIX" == "windows" ]]; then
@@ -887,10 +980,13 @@ main() {
   # Print banner
   echo ""
   echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-  echo -e "${CYAN}   Agent Smith Installer${NC}"
+  echo -e "${CYAN}   Agentic Installer${NC}"
   echo -e "${CYAN}   Production-Grade Installation from Source${NC}"
   echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
   echo ""
+
+  # Initialize migration flag
+  MIGRATE_FROM_OLD=false
 
   # Run all checks and installation steps
   check_dependencies

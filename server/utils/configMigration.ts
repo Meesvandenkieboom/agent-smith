@@ -1,5 +1,5 @@
 /**
- * Agent Smith - Modern chat interface for Claude Agent SDK
+ * Agentic - Modern chat interface for Claude Agent SDK
  * Copyright (C) 2025 KenKai
  *
  * SPDX-License-Identifier: AGPL-3.0-or-later
@@ -49,7 +49,7 @@ export function getConfigDir(): string {
 export function getConfigFilePaths(): Record<string, string> {
   const configDir = getConfigDir();
   const appDataDir = process.env.AGENT_SMITH_DATA_DIR ||
-    path.join(process.env.HOME || process.env.USERPROFILE || '', 'Documents', 'agent-smith-app');
+    path.join(process.env.HOME || process.env.USERPROFILE || '', 'Documents', 'agentic-app');
 
   return {
     mcpServers: path.join(configDir, 'mcp-servers.json'),

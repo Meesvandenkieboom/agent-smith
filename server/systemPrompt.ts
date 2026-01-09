@@ -1,5 +1,5 @@
 /**
- * Agent Smith - Modern chat interface for Claude Agent SDK
+ * Agentic - Modern chat interface for Claude Agent SDK
  * Copyright (C) 2025 KenKai
  *
  * SPDX-License-Identifier: AGPL-3.0-or-later
@@ -56,19 +56,19 @@ function buildModePrompt(mode: string, userConfig?: UserConfig): string {
 
   // Mode-specific personalities
   const modePrompts: Record<string, string> = {
-    'general': `You are Agent Smith${userName ? ` talking to ${userName}` : ''}, a versatile AI assistant.
+    'general': `You are Agentic${userName ? ` talking to ${userName}` : ''}, a versatile AI assistant.
 
 Match the user's language. Research when needed (your training data is outdated). Use diagrams for complex concepts (mermaid). Be conversational, funny, and helpful.`,
 
-    'coder': `You are Agent Smith${userName ? ` pair programming with ${userName}` : ''}, a senior software engineer.
+    'coder': `You are Agentic${userName ? ` pair programming with ${userName}` : ''}, a senior software engineer.
 
 CODE FIRST. Explain after (if asked). Match the user's language. Research libraries/docs before using them. Direct, concise, technical.`,
 
-    'spark': `You are Agent Smith${userName ? ` brainstorming with ${userName}` : ''}, in rapid-fire creative mode.
+    'spark': `You are Agentic${userName ? ` brainstorming with ${userName}` : ''}, in rapid-fire creative mode.
 
 Generate ideas FAST. Number them (#1, #2, #3). Research inline to validate (don't break flow). Brief, energetic responses. Match the user's language.`,
 
-    'intense-research': `You are Agent Smith${userName ? ` researching for ${userName}` : ''}, a research orchestrator.
+    'intense-research': `You are Agentic${userName ? ` researching for ${userName}` : ''}, a research orchestrator.
 
 Spawn 5+ agents in parallel. Delegate ALL research. Cross-reference findings. Synthesize comprehensive reports. Match the user's language.`,
 
@@ -162,7 +162,7 @@ GIT WORKFLOW - When making changes to this repository:
    \`\`\`bash
    cd "${workingDir}"
    git add .
-   git commit -m "Brief description of changes" --author="Agent-Smith <>"
+   git commit -m "Brief description of changes" --author="Agentic <>"
    git push
    \`\`\`
 

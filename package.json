@@ -1,10 +1,11 @@
 {
-  "name": "agent-smith",
-  "version": "9.0.0",
+  "name": "agentic",
+  "version": "10.0.0",
   "type": "module",
   "main": "index.js",
   "bin": {
-    "agent-smith": "./bin/agent-smith.js"
+    "agentic": "./bin/agentic.js",
+    "agent-smith": "./bin/agent-smith-legacy.js"
   },
   "scripts": {
     "dev": "bun run server/server.ts",
@@ -23,7 +24,7 @@
   },
   "author": "KenKai",
   "license": "AGPL-3.0-or-later",
-  "description": "Agent Smith - Modern chat interface for Claude Agent SDK",
+  "description": "Agentic - Modern chat interface for Claude Agent SDK",
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.1.46",
     "@radix-ui/react-dialog": "^1.1.15",

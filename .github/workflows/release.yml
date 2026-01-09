@@ -43,28 +43,28 @@ jobs:
 
       - name: Setup release directory (source-based)
         run: |
-          mkdir -p release/agent-smith-${{ matrix.platform }}
-          cp -r server release/agent-smith-${{ matrix.platform }}/
-          cp -r client release/agent-smith-${{ matrix.platform }}/
-          cp -r dist release/agent-smith-${{ matrix.platform }}/
-          cp cli.ts release/agent-smith-${{ matrix.platform }}/
-          cp package.json release/agent-smith-${{ matrix.platform }}/
-          cp build-css.ts release/agent-smith-${{ matrix.platform }}/
-          cp bun.lockb release/agent-smith-${{ matrix.platform }}/ 2>/dev/null || true
-          cp LICENSE release/agent-smith-${{ matrix.platform }}/
-          cp credits.mp3 release/agent-smith-${{ matrix.platform }}/ 2>/dev/null || true
-          cp tailwind.config.js release/agent-smith-${{ matrix.platform }}/ 2>/dev/null || true
-          cp postcss.config.mjs release/agent-smith-${{ matrix.platform }}/ 2>/dev/null || true
-          cp tsconfig.json release/agent-smith-${{ matrix.platform }}/ 2>/dev/null || true
+          mkdir -p release/agentic-${{ matrix.platform }}
+          cp -r server release/agentic-${{ matrix.platform }}/
+          cp -r client release/agentic-${{ matrix.platform }}/
+          cp -r dist release/agentic-${{ matrix.platform }}/
+          cp cli.ts release/agentic-${{ matrix.platform }}/
+          cp package.json release/agentic-${{ matrix.platform }}/
+          cp build-css.ts release/agentic-${{ matrix.platform }}/
+          cp bun.lockb release/agentic-${{ matrix.platform }}/ 2>/dev/null || true
+          cp LICENSE release/agentic-${{ matrix.platform }}/
+          cp credits.mp3 release/agentic-${{ matrix.platform }}/ 2>/dev/null || true
+          cp tailwind.config.js release/agentic-${{ matrix.platform }}/ 2>/dev/null || true
+          cp postcss.config.mjs release/agentic-${{ matrix.platform }}/ 2>/dev/null || true
+          cp tsconfig.json release/agentic-${{ matrix.platform }}/ 2>/dev/null || true
 
       - name: Install production dependencies
         run: |
-          cd release/agent-smith-${{ matrix.platform }}
+          cd release/agentic-${{ matrix.platform }}
           bun install --production
 
       - name: Create launcher script
         run: |
-          cat > release/agent-smith-${{ matrix.platform }}/agent-smith << 'EOF'
+          cat > release/agentic-${{ matrix.platform }}/agentic << 'EOF'
           #!/bin/bash
           set -e
 
@@ -80,7 +80,7 @@ jobs:
           if ! command -v node &> /dev/null; then
               echo "❌ Node.js not found!"
               echo ""
-              echo "Agent Smith requires Node.js v18+ for the Claude SDK."
+              echo "Agentic requires Node.js v18+ for the Claude SDK."
               echo "Install from: https://nodejs.org"
               echo ""
               exit 1
@@ -100,7 +100,7 @@ jobs:
               if [[ "$NODE_PATH" == *"/mnt/c/"* ]] || [[ "$NODE_PATH" == *.exe ]]; then
                   echo "❌ Windows Node.js detected in WSL!"
                   echo ""
-                  echo "You have Windows Node in your PATH, but Agent Smith needs native WSL Node."
+                  echo "You have Windows Node in your PATH, but Agentic needs native WSL Node."
                   echo "Please install Node.js for WSL:"
                   echo "  curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -"
                   echo "  sudo apt-get install -y nodejs"
@@ -147,16 +147,16 @@ jobs:
           fi
 
           # Start the server
-          echo "🚀 Starting Agent Smith..."
+          echo "🚀 Starting Agentic..."
           echo
           export STANDALONE_BUILD=true
           exec bun run server/server.ts "$@"
           EOF
-          chmod +x release/agent-smith-${{ matrix.platform }}/agent-smith
+          chmod +x release/agentic-${{ matrix.platform }}/agentic
 
       - name: Create .env template
         run: |
-          cat > release/agent-smith-${{ matrix.platform }}/.env << 'EOF'
+          cat > release/agentic-${{ matrix.platform }}/.env << 'EOF'
           # =============================================================================
           # Anthropic Configuration (Claude Models)
           # =============================================================================
@@ -180,9 +180,9 @@ jobs:
 
       - name: Create README
         run: |
-          cat > release/agent-smith-${{ matrix.platform }}/README.txt << 'EOF'
-          Agent Smith Application - macOS
-          ==============================
+          cat > release/agentic-${{ matrix.platform }}/README.txt << 'EOF'
+          Agentic Application - macOS
+          ============================
 
           Setup (First Time):
           1. Open the .env file in a text editor
@@ -191,8 +191,8 @@ jobs:
              With: ANTHROPIC_API_KEY=sk-ant-your-actual-key
 
           To Run:
-          - Double-click the 'agent-smith' file
-          - Or run from terminal: ./agent-smith
+          - Double-click the 'agentic' file
+          - Or run from terminal: ./agentic
           - The app will start at http://localhost:3001
           - Your browser should open automatically
 
@@ -201,7 +201,7 @@ jobs:
           - Subsequent launches are instant
 
           Data Storage:
-          - Sessions stored in ~/Documents/agent-smith/
+          - Sessions stored in ~/Documents/agentic/
           - All your conversations are saved locally
 
           Requirements:
@@ -250,15 +250,15 @@ jobs:
           codesign --force --options runtime \
             --sign "$APPLE_SIGNING_IDENTITY" \
             --timestamp \
-            release/agent-smith-${{ matrix.platform }}/agent-smith
+            release/agentic-${{ matrix.platform }}/agentic
 
           # Verify signature
-          codesign --verify --verbose release/agent-smith-${{ matrix.platform }}/agent-smith
+          codesign --verify --verbose release/agentic-${{ matrix.platform }}/agentic
 
       - name: Create ZIP archive
         run: |
           cd release
-          zip -r agent-smith-${{ matrix.platform }}.zip agent-smith-${{ matrix.platform }}/
+          zip -r agentic-${{ matrix.platform }}.zip agentic-${{ matrix.platform }}/
 
       - name: Notarize application
         env:
@@ -267,7 +267,7 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           # Submit for notarization
-          xcrun notarytool submit release/agent-smith-${{ matrix.platform }}.zip \
+          xcrun notarytool submit release/agentic-${{ matrix.platform }}.zip \
             --apple-id "$APPLE_ID" \
             --password "$APPLE_APP_SPECIFIC_PASSWORD" \
             --team-id "$APPLE_TEAM_ID" \
@@ -279,8 +279,8 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: agent-smith-${{ matrix.platform }}
-          path: release/agent-smith-${{ matrix.platform }}.zip
+          name: agentic-${{ matrix.platform }}
+          path: release/agentic-${{ matrix.platform }}.zip
           retention-days: 7
 
   build-windows:
@@ -304,23 +304,23 @@ jobs:
 
       - name: Setup release directory (source-based)
         run: |
-          New-Item -ItemType Directory -Force -Path release\agent-smith-windows-x64
-          Copy-Item -Recurse -Force server release\agent-smith-windows-x64\
-          Copy-Item -Recurse -Force client release\agent-smith-windows-x64\
-          Copy-Item -Recurse -Force dist release\agent-smith-windows-x64\
-          Copy-Item -Force cli.ts release\agent-smith-windows-x64\
-          Copy-Item -Force package.json release\agent-smith-windows-x64\
-          Copy-Item -Force build-css.ts release\agent-smith-windows-x64\
-          if (Test-Path bun.lockb) { Copy-Item -Force bun.lockb release\agent-smith-windows-x64\ }
-          Copy-Item -Force LICENSE release\agent-smith-windows-x64\
-          if (Test-Path credits.mp3) { Copy-Item -Force credits.mp3 release\agent-smith-windows-x64\ }
-          if (Test-Path tailwind.config.js) { Copy-Item -Force tailwind.config.js release\agent-smith-windows-x64\ }
-          if (Test-Path postcss.config.mjs) { Copy-Item -Force postcss.config.mjs release\agent-smith-windows-x64\ }
-          if (Test-Path tsconfig.json) { Copy-Item -Force tsconfig.json release\agent-smith-windows-x64\ }
+          New-Item -ItemType Directory -Force -Path release\agentic-windows-x64
+          Copy-Item -Recurse -Force server release\agentic-windows-x64\
+          Copy-Item -Recurse -Force client release\agentic-windows-x64\
+          Copy-Item -Recurse -Force dist release\agentic-windows-x64\
+          Copy-Item -Force cli.ts release\agentic-windows-x64\
+          Copy-Item -Force package.json release\agentic-windows-x64\
+          Copy-Item -Force build-css.ts release\agentic-windows-x64\
+          if (Test-Path bun.lockb) { Copy-Item -Force bun.lockb release\agentic-windows-x64\ }
+          Copy-Item -Force LICENSE release\agentic-windows-x64\
+          if (Test-Path credits.mp3) { Copy-Item -Force credits.mp3 release\agentic-windows-x64\ }
+          if (Test-Path tailwind.config.js) { Copy-Item -Force tailwind.config.js release\agentic-windows-x64\ }
+          if (Test-Path postcss.config.mjs) { Copy-Item -Force postcss.config.mjs release\agentic-windows-x64\ }
+          if (Test-Path tsconfig.json) { Copy-Item -Force tsconfig.json release\agentic-windows-x64\ }
 
       - name: Install production dependencies
         run: |
-          cd release\agent-smith-windows-x64
+          cd release\agentic-windows-x64
           bun install --production
 
       - name: Create launcher script
@@ -385,11 +385,11 @@ jobs:
           echo.
 
           :: Start the server in production mode
-          echo 🚀 Starting Agent Smith...
+          echo 🚀 Starting Agentic...
           echo.
           set STANDALONE_BUILD=true
           bun run server\server.ts %*
-          '@ | Out-File -FilePath release\agent-smith-windows-x64\agent-smith.bat -Encoding ASCII
+          '@ | Out-File -FilePath release\agentic-windows-x64\agentic.bat -Encoding ASCII
 
       - name: Create .env template
         run: |
@@ -413,13 +413,13 @@ jobs:
           # Get your API key from: https://platform.moonshot.ai/
           # The server automatically configures the endpoint when you select a Kimi model
           MOONSHOT_API_KEY=your-moonshot-key-here
-          "@ | Out-File -FilePath release\agent-smith-windows-x64\.env -Encoding UTF8
+          "@ | Out-File -FilePath release\agentic-windows-x64\.env -Encoding UTF8
 
       - name: Create README
         run: |
           @"
-          Agent Smith Application - Windows
-          =================================
+          Agentic Application - Windows
+          ==============================
 
           Setup (First Time):
           1. Open the .env file in a text editor
@@ -428,8 +428,8 @@ jobs:
              With: ANTHROPIC_API_KEY=sk-ant-your-actual-key
 
           To Run:
-          - Double-click the 'agent-smith.bat' file
-          - Or run from command prompt: agent-smith.bat
+          - Double-click the 'agentic.bat' file
+          - Or run from command prompt: agentic.bat
           - The app will start at http://localhost:3001
           - Your browser should open automatically
 
@@ -438,7 +438,7 @@ jobs:
           - Subsequent launches are instant
 
           Data Storage:
-          - Sessions stored in %USERPROFILE%\Documents\agent-smith\
+          - Sessions stored in %USERPROFILE%\Documents\agentic\
           - All your conversations are saved locally
 
           Requirements:
@@ -452,17 +452,17 @@ jobs:
           - Make sure .env file has your real API key
 
           Enjoy!
-          "@ | Out-File -FilePath release\agent-smith-windows-x64\README.txt -Encoding UTF8
+          "@ | Out-File -FilePath release\agentic-windows-x64\README.txt -Encoding UTF8
 
       - name: Create ZIP archive
         run: |
-          Compress-Archive -Path release\agent-smith-windows-x64 -DestinationPath release\agent-smith-windows-x64.zip
+          Compress-Archive -Path release\agentic-windows-x64 -DestinationPath release\agentic-windows-x64.zip
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: agent-smith-windows-x64
-          path: release/agent-smith-windows-x64.zip
+          name: agentic-windows-x64
+          path: release/agentic-windows-x64.zip
           retention-days: 7
 
   build-linux:
@@ -486,28 +486,28 @@ jobs:
 
       - name: Setup release directory (source-based)
         run: |
-          mkdir -p release/agent-smith-linux-x64
-          cp -r server release/agent-smith-linux-x64/
-          cp -r client release/agent-smith-linux-x64/
-          cp -r dist release/agent-smith-linux-x64/
-          cp cli.ts release/agent-smith-linux-x64/
-          cp package.json release/agent-smith-linux-x64/
-          cp build-css.ts release/agent-smith-linux-x64/
-          cp bun.lockb release/agent-smith-linux-x64/ 2>/dev/null || true
-          cp LICENSE release/agent-smith-linux-x64/
-          cp credits.mp3 release/agent-smith-linux-x64/ 2>/dev/null || true
-          cp tailwind.config.js release/agent-smith-linux-x64/ 2>/dev/null || true
-          cp postcss.config.mjs release/agent-smith-linux-x64/ 2>/dev/null || true
-          cp tsconfig.json release/agent-smith-linux-x64/ 2>/dev/null || true
+          mkdir -p release/agentic-linux-x64
+          cp -r server release/agentic-linux-x64/
+          cp -r client release/agentic-linux-x64/
+          cp -r dist release/agentic-linux-x64/
+          cp cli.ts release/agentic-linux-x64/
+          cp package.json release/agentic-linux-x64/
+          cp build-css.ts release/agentic-linux-x64/
+          cp bun.lockb release/agentic-linux-x64/ 2>/dev/null || true
+          cp LICENSE release/agentic-linux-x64/
+          cp credits.mp3 release/agentic-linux-x64/ 2>/dev/null || true
+          cp tailwind.config.js release/agentic-linux-x64/ 2>/dev/null || true
+          cp postcss.config.mjs release/agentic-linux-x64/ 2>/dev/null || true
+          cp tsconfig.json release/agentic-linux-x64/ 2>/dev/null || true
 
       - name: Install production dependencies
         run: |
-          cd release/agent-smith-linux-x64
+          cd release/agentic-linux-x64
           bun install --production
 
       - name: Create launcher script
         run: |
-          cat > release/agent-smith-linux-x64/agent-smith << 'EOF'
+          cat > release/agentic-linux-x64/agentic << 'EOF'
           #!/bin/bash
           set -e
 
@@ -523,7 +523,7 @@ jobs:
           if ! command -v node &> /dev/null; then
               echo "❌ Node.js not found!"
               echo ""
-              echo "Agent Smith requires Node.js v18+ for the Claude SDK."
+              echo "Agentic requires Node.js v18+ for the Claude SDK."
               echo "Install from: https://nodejs.org"
               echo ""
               exit 1
@@ -543,7 +543,7 @@ jobs:
               if [[ "$NODE_PATH" == *"/mnt/c/"* ]] || [[ "$NODE_PATH" == *.exe ]]; then
                   echo "❌ Windows Node.js detected in WSL!"
                   echo ""
-                  echo "You have Windows Node in your PATH, but Agent Smith needs native WSL Node."
+                  echo "You have Windows Node in your PATH, but Agentic needs native WSL Node."
                   echo "Please install Node.js for WSL:"
                   echo "  curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -"
                   echo "  sudo apt-get install -y nodejs"
@@ -590,16 +590,16 @@ jobs:
           fi
 
           # Start the server
-          echo "🚀 Starting Agent Smith..."
+          echo "🚀 Starting Agentic..."
           echo
           export STANDALONE_BUILD=true
           exec bun run server/server.ts "$@"
           EOF
-          chmod +x release/agent-smith-linux-x64/agent-smith
+          chmod +x release/agentic-linux-x64/agentic
 
       - name: Create .env template
         run: |
-          cat > release/agent-smith-linux-x64/.env << 'EOF'
+          cat > release/agentic-linux-x64/.env << 'EOF'
           # =============================================================================
           # Anthropic Configuration (Claude Models)
           # =============================================================================
@@ -623,9 +623,9 @@ jobs:
 
       - name: Create README
         run: |
-          cat > release/agent-smith-linux-x64/README.txt << 'EOF'
-          Agent Smith Application - Linux
-          ===============================
+          cat > release/agentic-linux-x64/README.txt << 'EOF'
+          Agentic Application - Linux
+          ============================
 
           Setup (First Time):
           1. Open the .env file in a text editor
@@ -634,9 +634,9 @@ jobs:
              With: ANTHROPIC_API_KEY=sk-ant-your-actual-key
 
           To Run:
-          - Right-click 'agent-smith' → Properties → Permissions → Check "Allow executing file as program"
-          - Then double-click the 'agent-smith' file
-          - Or run from terminal: ./agent-smith
+          - Right-click 'agentic' → Properties → Permissions → Check "Allow executing file as program"
+          - Then double-click the 'agentic' file
+          - Or run from terminal: ./agentic
           - The app will start at http://localhost:3001
           - Your browser should open automatically
 
@@ -645,7 +645,7 @@ jobs:
           - Subsequent launches are instant
 
           Data Storage:
-          - Sessions stored in ~/Documents/agent-smith/
+          - Sessions stored in ~/Documents/agentic/
           - All your conversations are saved locally
 
           Requirements:
@@ -657,7 +657,7 @@ jobs:
 
           Troubleshooting:
           - If port 3001 is busy, kill the process: lsof -ti:3001 | xargs kill -9
-          - If permission denied, run: chmod +x agent-smith
+          - If permission denied, run: chmod +x agentic
           - Make sure .env file has your real API key
           - On some distributions, you may need to install curl: sudo apt install curl
 
@@ -667,13 +667,13 @@ jobs:
       - name: Create ZIP archive
         run: |
           cd release
-          zip -r agent-smith-linux-x64.zip agent-smith-linux-x64/
+          zip -r agentic-linux-x64.zip agentic-linux-x64/
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: agent-smith-linux-x64
-          path: release/agent-smith-linux-x64.zip
+          name: agentic-linux-x64
+          path: release/agentic-linux-x64.zip
           retention-days: 7
 
   create-release:
@@ -705,14 +705,14 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ steps.version.outputs.VERSION }}
-          name: Agent Smith ${{ steps.version.outputs.VERSION }}
+          name: Agentic ${{ steps.version.outputs.VERSION }}
           draft: false
           prerelease: false
           generate_release_notes: true
           files: |
-            artifacts/agent-smith-macos-arm64/agent-smith-macos-arm64.zip
-            artifacts/agent-smith-macos-intel/agent-smith-macos-intel.zip
-            artifacts/agent-smith-windows-x64/agent-smith-windows-x64.zip
-            artifacts/agent-smith-linux-x64/agent-smith-linux-x64.zip
+            artifacts/agentic-macos-arm64/agentic-macos-arm64.zip
+            artifacts/agentic-macos-intel/agentic-macos-intel.zip
+            artifacts/agentic-windows-x64/agentic-windows-x64.zip
+            artifacts/agentic-linux-x64/agentic-linux-x64.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

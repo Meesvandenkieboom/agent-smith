@@ -1,6 +1,6 @@
 <div align="center">
 
-# Agent Smith
+# Agentic
 
 **A modern chat interface powered by the Claude Agent SDK**
 
@@ -10,12 +10,12 @@
 [![Bun](https://img.shields.io/badge/Bun-Latest-black?logo=bun)](https://bun.sh/)
 [![Claude](https://img.shields.io/badge/Claude-Sonnet_4.5-8B5CF6)](https://www.anthropic.com/claude)
 
-<img src="agentsmith.png" alt="Agent Smith" width="600" />
+<img src="agentic.png" alt="Agentic" width="600" />
 
 
-Seamless AI conversations with real-time streaming, session management, and specialized sub-agents. Built with React, TypeScript, and Bun for blazing-fast performance.
+Seamless AI conversations with real-time streaming, session management, and specialized sub-agents. Built with React, TypeScript, and Bun for blazing-fast performance. Now with a sleek, futuristic new look!
 
-[Getting Started](#-quick-start) • [Features](#-features) • [Installation](#-installation) • [Contributing](#-contributing)
+[Getting Started](#-quick-start) • [Features](#-features) • [Installation](#-installation) • [Migration](#-migration-from-agent-smith) • [Contributing](#-contributing)
 
 </div>
 
@@ -28,6 +28,7 @@ Seamless AI conversations with real-time streaming, session management, and spec
 - [🚀 Installation](#-installation)
 - [📖 Quick Start](#-quick-start)
 - [🎮 Usage](#-usage)
+- [🔄 Migration from Agent Smith](#-migration-from-agent-smith)
 - [🛠️ Development](#️-development)
 - [📚 Architecture](#-architecture)
 - [🔧 Configuration](#-configuration)
@@ -39,13 +40,15 @@ Seamless AI conversations with real-time streaming, session management, and spec
 
 ## 🌟 Overview
 
-Agent Smith is a **desktop-first chat interface** that brings the power of Anthropic's Claude Agent SDK to your local machine. Unlike web-based alternatives, Agent Smith runs entirely on your computer with full file system access, persistent sessions, and no data leaving your machine except API calls to Claude.
+Agentic is a **desktop-first chat interface** that brings the power of Anthropic's Claude Agent SDK to your local machine. Unlike web-based alternatives, Agentic runs entirely on your computer with full file system access, persistent sessions, and no data leaving your machine except API calls to Claude.
 
 **Perfect for:**
 - 🔧 Developers needing AI assistance with code
 - 📁 Power users who want file system access
 - 🔒 Privacy-conscious individuals (all data stored locally)
 - ⚡ Anyone seeking blazing-fast AI interactions
+
+> **Note:** Formerly known as Agent Smith. If you're upgrading, see the [Migration section](#-migration-from-agent-smith) below.
 
 ---
 
@@ -101,7 +104,7 @@ Agent Smith is a **desktop-first chat interface** that brings the power of Anthr
 **Works on macOS, Linux, and Windows (Git Bash/WSL):**
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Meesvandenkieboom/agent-smith/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Meesvandenkieboom/agentic/main/install.sh | bash
 ```
 
 **What it does:**
@@ -122,7 +125,7 @@ curl -fsSL https://raw.githubusercontent.com/Meesvandenkieboom/agent-smith/main/
 **For native Windows PowerShell:**
 
 ```powershell
-iwr -useb https://raw.githubusercontent.com/Meesvandenkieboom/agent-smith/main/install.ps1 | iex
+iwr -useb https://raw.githubusercontent.com/Meesvandenkieboom/agentic/main/install.ps1 | iex
 ```
 
 Provides better Windows integration with automatic PATH setup.
@@ -130,13 +133,13 @@ Provides better Windows integration with automatic PATH setup.
 ### Manual Download
 
 **macOS:**
-- [Apple Silicon (M1/M2/M3/M4)](https://github.com/Meesvandenkieboom/agent-smith/releases/latest/download/agent-smith-macos-arm64.zip)
-- [Intel (x86_64)](https://github.com/Meesvandenkieboom/agent-smith/releases/latest/download/agent-smith-macos-intel.zip)
+- [Apple Silicon (M1/M2/M3/M4)](https://github.com/Meesvandenkieboom/agentic/releases/latest/download/agentic-macos-arm64.zip)
+- [Intel (x86_64)](https://github.com/Meesvandenkieboom/agentic/releases/latest/download/agentic-macos-intel.zip)
 
 **Windows:**
-- [Windows x64](https://github.com/Meesvandenkieboom/agent-smith/releases/latest/download/agent-smith-windows-x64.zip)
+- [Windows x64](https://github.com/Meesvandenkieboom/agentic/releases/latest/download/agentic-windows-x64.zip)
 
-**Browse all releases:** [https://github.com/Meesvandenkieboom/agent-smith/releases](https://github.com/Meesvandenkieboom/agent-smith/releases)
+**Browse all releases:** [https://github.com/Meesvandenkieboom/agentic/releases](https://github.com/Meesvandenkieboom/agentic/releases)
 
 ---
 
@@ -148,10 +151,10 @@ Before first run, add your Anthropic API key:
 
 ```bash
 # macOS/Linux
-nano ~/Applications/agent-smith-app/.env
+nano ~/Applications/agentic-app/.env
 
 # Windows
-notepad %USERPROFILE%\Documents\agent-smith-app\.env
+notepad %USERPROFILE%\Documents\agentic-app\.env
 ```
 
 Replace `sk-ant-your-key-here` with your actual key from [console.anthropic.com](https://console.anthropic.com/).
@@ -160,15 +163,15 @@ Replace `sk-ant-your-key-here` with your actual key from [console.anthropic.com]
 
 **macOS:**
 ```bash
-agent-smith
+agentic
 ```
 
 **Windows:**
-- Double-click `agent-smith.exe` in the install directory
+- Double-click `agentic.exe` in the install directory
 
 **From Finder/Explorer:**
 1. Navigate to install directory
-2. Double-click the `agent-smith` executable
+2. Double-click the `agentic` executable
 
 The app starts at **http://localhost:3001** and opens automatically in your browser.
 
@@ -184,7 +187,7 @@ The app starts at **http://localhost:3001** and opens automatically in your brow
 To update to the latest version:
 
 ```bash
-agent-smith --update
+agentic --update
 ```
 
 **The smart update process:**
@@ -196,8 +199,8 @@ agent-smith --update
 - ✅ Clean, minimal output - just what you need to know
 
 **Alternative update methods:**
-- Manual: `curl -fsSL https://raw.githubusercontent.com/Meesvandenkieboom/agent-smith/main/install.sh | bash` (full reinstall)
-- From source: `cd agent-smith && git pull && bun install && bun run build`
+- Manual: `curl -fsSL https://raw.githubusercontent.com/Meesvandenkieboom/agentic/main/install.sh | bash` (full reinstall)
+- From source: `cd agentic && git pull && bun install && bun run build`
 
 ---
 
@@ -246,9 +249,71 @@ Sub-agent activity displays nested under parent tasks for clarity.
 
 Each session has an isolated working directory:
 
-- **Default:** `~/Documents/agent-smith-app/{session-id}/`
+- **Default:** `~/Documents/agentic-app/{session-id}/`
 - **Custom:** Choose any directory when creating
 - **Safety:** File operations scoped to this directory only
+
+---
+
+## 🔄 Migration from Agent Smith
+
+**Good news!** Agentic automatically migrates your existing Agent Smith data when you first launch it.
+
+### What Gets Migrated
+
+✅ **All sessions and conversations** - Your entire chat history
+✅ **Session metadata** - Titles, timestamps, model settings
+✅ **Working directories** - Your session workspaces remain intact
+✅ **OAuth tokens** - GitHub authentication persists
+✅ **Environment configuration** - Your API keys and settings
+
+### Migration Process
+
+**On first launch, Agentic will:**
+
+1. **Detect** your existing Agent Smith installation
+2. **Copy** all data to the new location
+3. **Preserve** the original (nothing is deleted)
+4. **Continue** seamlessly with all your data
+
+**Installation locations:**
+
+| Platform | Old (Agent Smith) | New (Agentic) |
+|----------|------------------|---------------|
+| macOS/Linux | `~/Documents/agent-smith-app/` | `~/Documents/agentic-app/` |
+| Windows | `%USERPROFILE%\Documents\agent-smith-app\` | `%USERPROFILE%\Documents\agentic-app\` |
+
+### Manual Migration (Optional)
+
+If automatic migration doesn't work, you can migrate manually:
+
+```bash
+# macOS/Linux
+cp -r ~/Documents/agent-smith-app/* ~/Documents/agentic-app/
+
+# Windows (PowerShell)
+Copy-Item -Path "$env:USERPROFILE\Documents\agent-smith-app\*" -Destination "$env:USERPROFILE\Documents\agentic-app\" -Recurse
+```
+
+### Clean Up (Optional)
+
+After confirming everything works in Agentic, you can remove the old installation:
+
+```bash
+# macOS/Linux
+rm -rf ~/Applications/agent-smith-app/
+rm -rf ~/Documents/agent-smith-app/
+
+# Windows
+# Manually delete from %USERPROFILE%\Documents\agent-smith-app\
+```
+
+### What's New in Agentic
+
+🎨 **Futuristic new icon** - Fresh look for a fresh start
+🚀 **Performance improvements** - Faster, smoother experience
+🔧 **Enhanced stability** - Bug fixes and refinements
+📦 **Better packaging** - Improved build and distribution
 
 ---
 
@@ -264,8 +329,8 @@ Each session has an isolated working directory:
 
 ```bash
 # Clone repository
-git clone https://github.com/Meesvandenkieboom/agent-smith.git
-cd agent-smith
+git clone https://github.com/Meesvandenkieboom/agentic.git
+cd agentic
 
 # Install dependencies
 bun install
@@ -330,7 +395,7 @@ bun test --watch
 ### Project Structure
 
 ```
-agent-smith/
+agentic/
 ├── client/                 # React frontend
 │   ├── components/
 │   │   ├── chat/          # ChatContainer, MessageList, ChatInput
@@ -431,7 +496,7 @@ taskkill /PID <PID> /F
 
 ```bash
 # macOS/Linux
-rm -rf ~/Documents/agent-smith-app/
+rm -rf ~/Documents/agentic-app/
 
 # Development
 rm -rf data/ && mkdir data
@@ -440,7 +505,7 @@ rm -rf data/ && mkdir data
 ### macOS Security Warnings
 
 **First run:**
-1. Right-click `agent-smith` → **"Open"**
+1. Right-click `agentic` → **"Open"**
 2. Click **"Open"** in security dialog
 
 Or via System Preferences:
@@ -485,7 +550,7 @@ This project is licensed under the **GNU Affero General Public License v3.0 (AGP
 
 See the [LICENSE](LICENSE) file for full terms.
 
-**TL;DR:** You can use, modify, and distribute Agent Smith freely, but if you modify it and run it as a public service, you must share your source code under the same license.
+**TL;DR:** You can use, modify, and distribute Agentic freely, but if you modify it and run it as a public service, you must share your source code under the same license.
 
 ---
 
@@ -509,8 +574,8 @@ See the [LICENSE](LICENSE) file for full terms.
 
 ## 📞 Support
 
-- **GitHub Issues**: [Report bugs](https://github.com/Meesvandenkieboom/agent-smith/issues)
-- **GitHub Discussions**: [Ask questions](https://github.com/Meesvandenkieboom/agent-smith/discussions)
+- **GitHub Issues**: [Report bugs](https://github.com/Meesvandenkieboom/agentic/issues)
+- **GitHub Discussions**: [Ask questions](https://github.com/Meesvandenkieboom/agentic/discussions)
 - **YouTube**: [@kenkaidoesai](https://www.youtube.com/@kenkaidoesai)
 - **Skool Community**: [skool.com/kenkai](https://www.skool.com/kenkai)
 
@@ -522,6 +587,6 @@ See the [LICENSE](LICENSE) file for full terms.
 
 Copyright © 2025 KenKai • Licensed under AGPL-3.0
 
-[⬆ Back to Top](#agent-smith)
+[⬆ Back to Top](#agentic)
 
 </div>

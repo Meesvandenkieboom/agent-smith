@@ -1,5 +1,5 @@
 /**
- * Agent Smith - Modern chat interface for Claude Agent SDK
+ * Agentic - Modern chat interface for Claude Agent SDK
  * Copyright (C) 2025 KenKai
  *
  * SPDX-License-Identifier: AGPL-3.0-or-later
@@ -1784,13 +1784,13 @@ export function AssistantMessage({ message }: AssistantMessageProps) {
           {/* Header with avatar and model name */}
           <div className="message-assistant-header">
             <img
-              src="/client/agent-boy.svg"
+              src="/client/agentic-icon.svg"
               className="message-assistant-avatar"
-              alt="Agent Smith"
+              alt="Agentic"
             />
             <div className="message-assistant-name-container">
               <span className="message-assistant-name">
-                {message.metadata?.model || 'Agent Smith'}
+                {message.metadata?.model || 'Agentic'}
               </span>
               <span className="message-assistant-timestamp invisible group-hover:visible">
                 {formatTimestamp(message.timestamp)}
@@ -1810,7 +1810,7 @@ export function AssistantMessage({ message }: AssistantMessageProps) {
                   // Find the last thinking block index
                   const lastThinkingIndex = message.content.map((b, i) => b.type === 'thinking' ? i : -1).filter(i => i !== -1).pop();
                   const isLastThinking = index === lastThinkingIndex;
-                  return <ThinkingBlock key={index} title="Agent Smith's thoughts..." content={block.thinking} isActive={isLastThinking} />;
+                  return <ThinkingBlock key={index} title="Agentic's thoughts..." content={block.thinking} isActive={isLastThinking} />;
                 } else if (block.type === 'long_running_command') {
                   return <LongRunningCommandComponent key={index} command={block} />;
                 }
