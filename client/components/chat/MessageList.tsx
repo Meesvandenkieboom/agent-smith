@@ -81,6 +81,16 @@ export function MessageList({ messages, isLoading, liveTokenCount = 0, scrollCon
           scrollCooldownRef.current = false;
         }, 150); // 150ms cooldown after wheel scroll
       }
+      // User scrolled DOWN - check if they reached bottom to re-enable auto-scroll
+      else if (e.deltaY > 0) {
+        // Use a small delay to let the scroll position update
+        setTimeout(() => {
+          if (checkIfAtBottom()) {
+            userScrolledUpRef.current = false;
+            setIsAtBottom(true);
+          }
+        }, 50);
+      }
     };
 
     // Also handle touch scrolling for mobile
@@ -102,6 +112,15 @@ export function MessageList({ messages, isLoading, liveTokenCount = 0, scrollCon
           scrollCooldownRef.current = false;
         }, 150);
       }
+      // User swiped DOWN - check if at bottom
+      else if (deltaY > 10) {
+        setTimeout(() => {
+          if (checkIfAtBottom()) {
+            userScrolledUpRef.current = false;
+            setIsAtBottom(true);
+          }
+        }, 50);
+      }
       touchStartY = touchY;
     };
 
@@ -114,23 +133,6 @@ export function MessageList({ messages, isLoading, liveTokenCount = 0, scrollCon
       container.removeEventListener('touchstart', handleTouchStart);
       container.removeEventListener('touchmove', handleTouchMove);
     };
-  }, [parentRef]);
-
-  // Check if user scrolled back to bottom (re-enable auto-scroll)
-  useEffect(() => {
-    const container = parentRef.current;
-    if (!container) return;
-
-    const handleScroll = () => {
-      // Only check for "back to bottom" - wheel handles "scroll up"
-      if (checkIfAtBottom()) {
-        userScrolledUpRef.current = false;
-        setIsAtBottom(true);
-      }
-    };
-
-    container.addEventListener('scroll', handleScroll, { passive: true });
-    return () => container.removeEventListener('scroll', handleScroll);
   }, [parentRef, checkIfAtBottom]);
 
   // Reset scroll state when a NEW response starts (not during)
