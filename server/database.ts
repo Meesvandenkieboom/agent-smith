@@ -26,6 +26,7 @@ import { getDefaultWorkingDirectory, expandPath, validateDirectory, getAppDataDi
 import { deleteSessionPictures, deleteSessionFiles } from "./imageUtils";
 import { setupSessionCommands } from "./commandSetup";
 import { migrateSessionIfNeeded } from "./migrations/migrateSessionStructure";
+import { generateChatTitle } from "./utils/chatTitles";
 
 export interface Session {
   id: string;
@@ -734,16 +735,22 @@ class SessionDatabase {
       [id, sessionId, type, content, timestamp]
     );
 
-    // Auto-generate title from first user message
+    // Auto-generate title from first user message using AI
     if (type === 'user') {
       const session = this.getSession(sessionId);
       if (session && session.title === 'New Chat') {
-        // Generate title from first user message (max 60 chars)
-        let title = content.trim().substring(0, 60);
-        if (content.length > 60) {
-          title += '...';
-        }
-        this.renameSession(sessionId, title);
+        // Generate title asynchronously (don't block message saving)
+        generateChatTitle(content).then(title => {
+          this.renameSession(sessionId, title);
+        }).catch(err => {
+          console.warn('Title generation failed:', err);
+          // Fallback to simple truncation
+          let title = content.trim().substring(0, 60);
+          if (content.length > 60) {
+            title += '...';
+          }
+          this.renameSession(sessionId, title);
+        });
       }
     }
 

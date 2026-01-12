@@ -28,7 +28,6 @@ import { ModelSelector } from '../header/ModelSelector';
 import { WorkingDirectoryDisplay } from '../header/WorkingDirectoryDisplay';
 import { GitHubRepoIndicator } from '../header/GitHubRepoIndicator';
 import { AboutButton } from '../header/AboutButton';
-import { RadioPlayer } from '../header/RadioPlayer';
 import { PlanApprovalModal } from '../plan/PlanApprovalModal';
 import { BuildWizard } from '../build-wizard/BuildWizard';
 import { ScrollButton } from './ScrollButton';
@@ -1277,8 +1276,6 @@ export function ChatContainer() {
 
             {/* Right side */}
             <div className="header-right">
-              {/* Radio Player */}
-              <RadioPlayer />
               {/* GitHub Repo Indicator */}
               {currentSessionId && sessions.find(s => s.id === currentSessionId)?.github_repo && (
                 <GitHubRepoIndicator

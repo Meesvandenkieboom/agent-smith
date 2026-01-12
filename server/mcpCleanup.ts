@@ -10,7 +10,7 @@
  * 2. Session switch - kill MCP processes from the previous active session
  */
 
-import { exec, spawn } from 'child_process';
+import { exec } from 'child_process';
 import { promisify } from 'util';
 
 const execAsync = promisify(exec);
@@ -132,10 +132,16 @@ async function findProcessesOnMcpPorts(): Promise<ProcessInfo[]> {
   return processes;
 }
 
+interface KillResult {
+  success: boolean;
+  reason?: 'killed' | 'already_dead' | 'permission_denied' | 'error';
+}
+
 /**
  * Kill a process by PID
+ * Returns success=true if process is terminated OR was already dead
  */
-async function killProcess(pid: number): Promise<boolean> {
+async function killProcess(pid: number): Promise<KillResult> {
   try {
     process.kill(pid, 'SIGTERM');
 
@@ -144,15 +150,37 @@ async function killProcess(pid: number): Promise<boolean> {
 
     // Check if still alive, force kill if needed
     try {
-      process.kill(pid, 0); // Check if alive
+      process.kill(pid, 0); // Check if alive (throws if dead)
       process.kill(pid, 'SIGKILL'); // Force kill
+
+      // Wait and verify it's dead
+      await new Promise(resolve => setTimeout(resolve, 200));
+      try {
+        process.kill(pid, 0);
+        // Still alive after SIGKILL - rare but possible
+        return { success: false, reason: 'error' };
+      } catch {
+        // Good - it's dead
+        return { success: true, reason: 'killed' };
+      }
     } catch {
-      // Process already dead
+      // Process already dead from SIGTERM
+      return { success: true, reason: 'killed' };
+    }
+  } catch (err: unknown) {
+    const error = err as NodeJS.ErrnoException;
+
+    // ESRCH = No such process (already dead) - this is SUCCESS, not failure
+    if (error.code === 'ESRCH') {
+      return { success: true, reason: 'already_dead' };
     }
 
-    return true;
-  } catch {
-    return false;
+    // EPERM = Permission denied
+    if (error.code === 'EPERM') {
+      return { success: false, reason: 'permission_denied' };
+    }
+
+    return { success: false, reason: 'error' };
   }
 }
 
@@ -191,12 +219,17 @@ export async function cleanupOrphanedMcpProcesses(): Promise<number> {
 
   let killed = 0;
   for (const proc of allProcesses.values()) {
-    const success = await killProcess(proc.pid);
-    if (success) {
-      console.log(`   ✓ Killed PID ${proc.pid}`);
+    const result = await killProcess(proc.pid);
+    if (result.success) {
+      if (result.reason === 'already_dead') {
+        console.log(`   ✓ PID ${proc.pid} (already terminated)`);
+      } else {
+        console.log(`   ✓ Killed PID ${proc.pid}`);
+      }
       killed++;
     } else {
-      console.warn(`   ✗ Failed to kill PID ${proc.pid}`);
+      const reasonText = result.reason === 'permission_denied' ? 'permission denied' : 'unknown error';
+      console.warn(`   ✗ Failed to kill PID ${proc.pid}: ${reasonText}`);
     }
   }
 

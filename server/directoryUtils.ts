@@ -82,33 +82,61 @@ function getWindowsUsername(): string | null {
 
 /**
  * Get the default working directory for agent operations
- * Cross-platform: ~/Documents/agentic (Mac/Linux) or C:\Users\{user}\Documents\agentic (Windows)
- * WSL: Uses Windows path (/mnt/c/Users/{user}/Documents/agentic)
+ * Cross-platform: ~/projects/agentic (Linux/Mac/WSL) or C:\Users\{user}\projects\agentic (Windows)
  *
- * NOTE: Includes automatic migration from legacy 'agent-smith' directories
+ * WSL: Uses Linux filesystem (~/projects/agentic) for 10-20x faster I/O
+ *      instead of Windows path (/mnt/c/...) which has significant overhead
+ *
+ * NOTE: Includes automatic migration from legacy directories:
+ * - ~/Documents/agent-smith (original name)
+ * - ~/Documents/agentic (previous default)
+ * - /mnt/c/Users/.../Documents/agentic (WSL on Windows filesystem)
  */
 export function getDefaultWorkingDirectory(): string {
-  let homeDir = os.homedir();
+  // Check for environment variable override first
+  const envPath = process.env.AGENTIC_WORKSPACE_DIR;
+  if (envPath) {
+    const expanded = expandPath(envPath);
+    console.log('📁 Using workspace from AGENTIC_WORKSPACE_DIR:', expanded);
+    return expanded;
+  }
 
-  // If running in WSL, use Windows home directory instead
+  // Use Linux home directory (even in WSL - for performance)
+  const homeDir = os.homedir();
+
+  // New default: ~/projects/agentic (Linux-native path for performance)
+  const newDir = path.join(homeDir, 'projects', 'agentic');
+
+  // Legacy directories to migrate from
+  const legacyDirs = [
+    path.join(homeDir, 'Documents', 'agent-smith'),  // Original name
+    path.join(homeDir, 'Documents', 'agentic'),      // Previous default
+  ];
+
+  // WSL-specific: Also check Windows filesystem for migration
   if (isWSL()) {
     const windowsUser = getWindowsUsername();
     if (windowsUser) {
-      homeDir = `/mnt/c/Users/${windowsUser}`;
-      console.log('🪟 WSL detected, using Windows home:', homeDir);
+      legacyDirs.push(`/mnt/c/Users/${windowsUser}/Documents/agentic`);
+      legacyDirs.push(`/mnt/c/Users/${windowsUser}/Documents/agent-smith`);
     }
+    console.log('🪟 WSL detected, using Linux filesystem for better performance');
   }
 
-  const newDir = path.join(homeDir, 'Documents', 'agentic');
-  const legacyDir = path.join(homeDir, 'Documents', 'agent-smith');
-
-  // Auto-migrate from legacy directory if it exists and new one doesn't
-  if (fs.existsSync(legacyDir) && !fs.existsSync(newDir)) {
-    try {
-      fs.cpSync(legacyDir, newDir, { recursive: true });
-      console.log('✅ Migrated data from ~/Documents/agent-smith to ~/Documents/agentic');
-    } catch (error) {
-      console.warn('⚠️  Could not auto-migrate legacy directory, using new path');
+  // Auto-migrate from legacy directories if new one doesn't exist
+  if (!fs.existsSync(newDir)) {
+    for (const legacyDir of legacyDirs) {
+      if (fs.existsSync(legacyDir)) {
+        try {
+          // Ensure parent directory exists
+          fs.mkdirSync(path.dirname(newDir), { recursive: true });
+          fs.cpSync(legacyDir, newDir, { recursive: true });
+          console.log(`✅ Migrated workspaces from ${legacyDir} to ${newDir}`);
+          break;  // Stop after first successful migration
+        } catch (err) {
+          console.warn(`⚠️  Could not auto-migrate from ${legacyDir}:`, err);
+        }
+      }
     }
   }
 
@@ -131,7 +159,7 @@ export function getAppDataDirectory(): string {
     try {
       fs.cpSync(legacyDir, newDir, { recursive: true });
       console.log('✅ Migrated app data from ~/Documents/agent-smith-app to ~/Documents/agentic-app');
-    } catch (error) {
+    } catch {
       console.warn('⚠️  Could not auto-migrate legacy app data directory');
     }
   }
