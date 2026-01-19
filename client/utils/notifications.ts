@@ -37,7 +37,8 @@ export async function requestNotificationPermission(): Promise<NotificationPermi
  * @returns true if tab is focused, false otherwise
  */
 export function isTabFocused(): boolean {
-  return document.visibilityState === 'visible' && document.hasFocus();
+  // Only check visibility state - hasFocus() is unreliable when browser is minimized
+  return document.visibilityState === 'visible';
 }
 
 /**
