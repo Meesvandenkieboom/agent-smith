@@ -11,9 +11,11 @@ import { requestNotificationPermission, type NotificationPermissionStatus } from
 import { toast } from '../../utils/toast';
 
 export function NotificationToggle() {
-  // Always start as 'default' so user can manually click to request permission
-  // This fixes stale permission issues after browser/app restart
-  const [permissionStatus, setPermissionStatus] = useState<NotificationPermissionStatus>('default');
+  // Check actual browser permission status on mount
+  const [permissionStatus, setPermissionStatus] = useState<NotificationPermissionStatus>(() => {
+    if (typeof window === 'undefined' || !('Notification' in window)) return 'denied';
+    return Notification.permission as NotificationPermissionStatus;
+  });
   const [isRequesting, setIsRequesting] = useState(false);
 
   const handleToggle = async () => {
