@@ -8,9 +8,17 @@
 import React, { useState, useEffect } from 'react';
 import { Bell, BellOff, BellRing } from 'lucide-react';
 import { requestNotificationPermission, type NotificationPermissionStatus } from '../../utils/notifications';
+import { toast } from '../../utils/toast';
+
+const NOTIFICATIONS_ENABLED_KEY = 'agentic-notifications-enabled';
 
 export function NotificationToggle() {
   const [permissionStatus, setPermissionStatus] = useState<NotificationPermissionStatus>('default');
+  const [isEnabled, setIsEnabled] = useState<boolean>(() => {
+    // Load from localStorage, default to true
+    const stored = localStorage.getItem(NOTIFICATIONS_ENABLED_KEY);
+    return stored === null ? true : stored === 'true';
+  });
   const [isRequesting, setIsRequesting] = useState(false);
 
   // Check current permission status on mount
@@ -22,24 +30,46 @@ export function NotificationToggle() {
     }
   }, []);
 
+  // Save enabled state to localStorage
+  useEffect(() => {
+    localStorage.setItem(NOTIFICATIONS_ENABLED_KEY, String(isEnabled));
+  }, [isEnabled]);
+
   const handleToggle = async () => {
-    if (permissionStatus === 'granted') {
-      // Can't revoke permission programmatically, show info
-      return;
-    }
-
+    // If permission denied, show instructions
     if (permissionStatus === 'denied') {
-      // Show instructions for manual enable
+      toast.error('Notifications blocked', {
+        description: 'Enable notifications in your browser settings for this site',
+      });
       return;
     }
 
-    // Request permission
-    setIsRequesting(true);
-    try {
-      const result = await requestNotificationPermission();
-      setPermissionStatus(result);
-    } finally {
-      setIsRequesting(false);
+    // If permission not yet granted, request it
+    if (permissionStatus === 'default') {
+      setIsRequesting(true);
+      try {
+        const result = await requestNotificationPermission();
+        setPermissionStatus(result);
+        if (result === 'granted') {
+          setIsEnabled(true);
+          toast.success('Notifications enabled!');
+        } else if (result === 'denied') {
+          toast.error('Notifications blocked');
+        }
+      } finally {
+        setIsRequesting(false);
+      }
+      return;
+    }
+
+    // Permission is granted - toggle local enabled state
+    const newEnabled = !isEnabled;
+    setIsEnabled(newEnabled);
+
+    if (newEnabled) {
+      toast.success('Notifications enabled');
+    } else {
+      toast.info('Notifications disabled');
     }
   };
 
@@ -50,23 +80,24 @@ export function NotificationToggle() {
 
   const getIcon = () => {
     if (isRequesting) return <Bell size={18} className="animate-pulse" />;
-    if (permissionStatus === 'granted') return <BellRing size={18} />;
     if (permissionStatus === 'denied') return <BellOff size={18} />;
-    return <Bell size={18} />;
+    if (permissionStatus === 'granted' && isEnabled) return <BellRing size={18} />;
+    return <BellOff size={18} />;
   };
 
   const getTooltip = () => {
-    if (permissionStatus === 'granted') return 'Desktop notifications enabled';
     if (permissionStatus === 'denied') return 'Notifications blocked - enable in browser settings';
-    return 'Enable desktop notifications';
+    if (permissionStatus === 'default') return 'Click to enable desktop notifications';
+    if (isEnabled) return 'Desktop notifications ON - click to disable';
+    return 'Desktop notifications OFF - click to enable';
   };
 
   const getButtonStyle = () => {
-    if (permissionStatus === 'granted') {
-      return 'text-green-400 hover:text-green-300';
-    }
     if (permissionStatus === 'denied') {
-      return 'text-gray-500 hover:text-gray-400 cursor-not-allowed';
+      return 'text-gray-500 hover:text-gray-400';
+    }
+    if (permissionStatus === 'granted' && isEnabled) {
+      return 'text-green-400 hover:text-green-300';
     }
     return 'text-gray-400 hover:text-gray-200';
   };
@@ -74,11 +105,18 @@ export function NotificationToggle() {
   return (
     <button
       onClick={handleToggle}
-      disabled={permissionStatus === 'denied' || isRequesting}
+      disabled={isRequesting}
       className={`p-2 rounded-lg transition-colors ${getButtonStyle()}`}
       title={getTooltip()}
     >
       {getIcon()}
     </button>
   );
+}
+
+// Export function to check if notifications are enabled (for use in ChatContainer)
+export function areNotificationsEnabled(): boolean {
+  if (typeof window === 'undefined') return false;
+  const stored = localStorage.getItem(NOTIFICATIONS_ENABLED_KEY);
+  return stored === null ? true : stored === 'true';
 }

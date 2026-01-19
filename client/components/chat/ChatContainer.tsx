@@ -28,7 +28,7 @@ import { ModelSelector } from '../header/ModelSelector';
 import { WorkingDirectoryDisplay } from '../header/WorkingDirectoryDisplay';
 import { GitHubRepoIndicator } from '../header/GitHubRepoIndicator';
 import { AboutButton } from '../header/AboutButton';
-import { NotificationToggle } from '../header/NotificationToggle';
+import { NotificationToggle, areNotificationsEnabled } from '../header/NotificationToggle';
 import { PlanApprovalModal } from '../plan/PlanApprovalModal';
 import { BuildWizard } from '../build-wizard/BuildWizard';
 import { ScrollButton } from './ScrollButton';
@@ -662,16 +662,17 @@ export function ChatContainer() {
           // Clear live token count when response completes
           setLiveTokenCount(0);
 
-          // Show desktop notification if user is away
+          // Show desktop notification if user is away and notifications are enabled
           console.log('[ChatContainer] Response complete, lastAssistantContent length:', lastAssistantContentRef.current.length);
-          if (lastAssistantContentRef.current) {
+          if (lastAssistantContentRef.current && areNotificationsEnabled()) {
             showClaudeResponseNotification({
               message: lastAssistantContentRef.current,
               title: 'Agentic',
             });
             lastAssistantContentRef.current = ''; // Reset for next response
           } else {
-            console.log('[ChatContainer] No content to show in notification');
+            console.log('[ChatContainer] Skipping notification - content empty or notifications disabled');
+            lastAssistantContentRef.current = ''; // Still reset
           }
         }
       } else if (message.type === 'timeout_warning') {
