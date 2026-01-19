@@ -100,9 +100,8 @@ export function showClaudeResponseNotification(
     forceShow = false,
   } = options;
 
-  // Build icon URL - use base64 data URL for maximum compatibility
-  // This is a simple blue circle icon that works in all browsers
-  const defaultIcon = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAAAsTAAALEwEAmpwYAAABs0lEQVR4nO2WvUoDQRSFv0hsfEJrwUorC1/AwsLKB7CwsLCw0UJrGysfwMJKO7G0srCwsLCw0s7CRhsLLbQIJCHJrtzA7OzO7I9ZCfiBgWHn3nvmzNy5s/BPfQEtYBe4Ah6BD+C7wPVeAjaBCnAKvCWB14FFYAFoAFfAc0zAMzANrAErwBywHhfwBLSBQ+AQWI0L6AATwBqwAqwC8yEBHWAXOAN2gMW4gF6gH1gDloF5YDYk4B04Bm6BA2A+JOAHGALWgQVgFpgJCXgDjoBH4ACYCQnQMTgC3oC9kIAfYBTYBBaBaWAq5P4N6AaugBNgPuT+HRgDNoB5YBKoB92/As/AB7AHzITcfwAXgAbeBORiAtT8BnADHAJTcQE1RYCauxtz/wF0gQ/gJCD/KSCgCjwAV0A7JKAO3AId4Aw4DglQk3PAA3AKtEMC2sA10AEugJOQgJpS4B14Bi5D7gfABNABboDjkICaov4eWAYmgYmQ+1tgEqgD7cD9KzACNIG7gPu+5r4P3AfcfwHrQAu4C7h/BUZA/T8HPv0H8QvxW/zb3mU7JAAAAABJRU5ErkJggg==';
+  // Use the Agentic flower icon from public folder
+  const defaultIcon = '/agentic-icon.svg';
   const iconUrl = icon || defaultIcon;
 
   // Debug logging
@@ -124,12 +123,11 @@ export function showClaudeResponseNotification(
     return null;
   }
 
-  // TEMPORARILY DISABLED: Always show notifications for debugging
   // Don't show if tab is focused (unless forced)
-  // if (!forceShow && isTabFocused()) {
-  //   console.log('[Notification] Tab is focused, skipping notification');
-  //   return null;
-  // }
+  if (!forceShow && isTabFocused()) {
+    console.log('[Notification] Tab is focused, skipping notification');
+    return null;
+  }
 
   // Prepare notification body
   const plainText = stripMarkdown(message);
