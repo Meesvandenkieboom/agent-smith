@@ -141,13 +141,28 @@ export function showClaudeResponseNotification(
 
     const notification = new Notification(title, {
       body,
-      tag: 'agentic-response',
+      icon: iconUrl,
+      // Removed tag to prevent collision issues
     });
 
     console.log('[Notification] Notification created successfully');
 
+    // Add event listeners for debugging
+    notification.onshow = () => {
+      console.log('[Notification] onshow event fired - notification is visible!');
+    };
+
+    notification.onerror = (e) => {
+      console.error('[Notification] onerror event fired:', e);
+    };
+
+    notification.onclose = () => {
+      console.log('[Notification] onclose event fired - notification closed');
+    };
+
     // Focus window when notification is clicked
     notification.onclick = () => {
+      console.log('[Notification] onclick event fired');
       window.focus();
       notification.close();
     };
