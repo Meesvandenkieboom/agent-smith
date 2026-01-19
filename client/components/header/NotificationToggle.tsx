@@ -32,6 +32,20 @@ export function NotificationToggle() {
       setPermissionStatus(result);
       if (result === 'granted') {
         toast.success('Notifications enabled!');
+
+        // Send a test notification immediately to verify it works
+        try {
+          const testNotification = new Notification('Agentic', {
+            body: 'Notifications are working! You will be notified when Claude responds.',
+            tag: 'agentic-test',
+          });
+          testNotification.onclick = () => {
+            window.focus();
+            testNotification.close();
+          };
+        } catch (e) {
+          console.error('[Notification] Test notification failed:', e);
+        }
       } else if (result === 'denied') {
         toast.error('Notifications blocked');
       }
