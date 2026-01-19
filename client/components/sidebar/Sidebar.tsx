@@ -19,7 +19,7 @@
  */
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Menu, Edit3, Search, Trash2, Edit, FolderOpen, Github, Loader2, LogOut, Settings as SettingsIcon } from 'lucide-react';
+import { Menu, Edit3, Search, Trash2, Edit, FolderOpen, Github, Loader2, LogOut, Settings as SettingsIcon, GitBranch } from 'lucide-react';
 import { toast } from '../../utils/toast';
 import { GitHubOAuthSetupModal } from '../setup/GitHubOAuthSetupModal';
 import { Settings } from '../settings/Settings';
@@ -30,6 +30,8 @@ interface Chat {
   timestamp: Date;
   isActive?: boolean;
   isLoading?: boolean;
+  parentSessionId?: string;
+  branchCount?: number;
 }
 
 interface GitHubStatus {
@@ -51,10 +53,11 @@ interface SidebarProps {
   onChatSelect?: (chatId: string) => void;
   onChatDelete?: (chatId: string) => void;
   onChatRename?: (chatId: string, newTitle: string) => void;
+  onChatBranch?: (chatId: string) => void;
   currentSessionId?: string | null;
 }
 
-export function Sidebar({ isOpen, onToggle, chats = [], onNewChat, onChatSelect, onChatDelete, onChatRename, currentSessionId: _currentSessionId }: SidebarProps) {
+export function Sidebar({ isOpen, onToggle, chats = [], onNewChat, onChatSelect, onChatDelete, onChatRename, onChatBranch, currentSessionId: _currentSessionId }: SidebarProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [isAllChatsExpanded, setIsAllChatsExpanded] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -240,6 +243,11 @@ export function Sidebar({ isOpen, onToggle, chats = [], onNewChat, onChatSelect,
     onChatDelete?.(chatId);
   };
 
+  const handleBranchClick = (chatId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    onChatBranch?.(chatId);
+  };
+
   const handleOpenChatFolder = async () => {
     try {
       const response = await fetch('/api/open-chat-folder', {
@@ -411,8 +419,27 @@ export function Sidebar({ isOpen, onToggle, chats = [], onNewChat, onChatSelect,
                               className={`sidebar-chat-item ${chat.isActive ? 'sidebar-chat-item-active' : ''}`}
                               onClick={() => onChatSelect?.(chat.id)}
                             >
-                              <div className="sidebar-chat-title">
-                                {chat.title}
+                              <div className="sidebar-chat-title" style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                                {/* Branch indicator for branched chats */}
+                                {chat.parentSessionId && (
+                                  <GitBranch size={12} className="text-[rgb(165,180,252)] flex-shrink-0" title="This is a branch" />
+                                )}
+                                <span className="truncate">{chat.title}</span>
+                                {/* Branch count badge */}
+                                {chat.branchCount !== undefined && chat.branchCount > 0 && (
+                                  <span style={{
+                                    marginLeft: '0.25rem',
+                                    padding: '0.125rem 0.375rem',
+                                    fontSize: '0.625rem',
+                                    fontWeight: 600,
+                                    backgroundColor: 'rgba(99, 102, 241, 0.2)',
+                                    color: 'rgb(165, 180, 252)',
+                                    borderRadius: '9999px',
+                                    flexShrink: 0,
+                                  }}>
+                                    {chat.branchCount}
+                                  </span>
+                                )}
                                 {chat.isLoading && (
                                   <span style={{
                                     marginLeft: '0.5rem',
@@ -478,6 +505,34 @@ export function Sidebar({ isOpen, onToggle, chats = [], onNewChat, onChatSelect,
                                 }}
                               >
                                 <Edit size={14} />
+                              </button>
+                              <button
+                                className="sidebar-chat-menu-btn"
+                                aria-label="Branch Chat"
+                                title="Create a branch from this chat"
+                                onClick={(e) => handleBranchClick(chat.id, e)}
+                                style={{
+                                  padding: '0.25rem',
+                                  background: chat.isActive ? 'rgb(var(--bg-tertiary))' : 'rgb(var(--bg-secondary))',
+                                  border: 'none',
+                                  borderRadius: '0.25rem',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  color: 'rgb(var(--text-secondary))',
+                                  transition: 'all 0.15s',
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.background = 'rgba(99, 102, 241, 0.15)';
+                                  e.currentTarget.style.color = 'rgb(165, 180, 252)';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.background = chat.isActive ? 'rgb(var(--bg-tertiary))' : 'rgb(var(--bg-secondary))';
+                                  e.currentTarget.style.color = 'rgb(var(--text-secondary))';
+                                }}
+                              >
+                                <GitBranch size={14} />
                               </button>
                               <button
                                 className="sidebar-chat-menu-btn"

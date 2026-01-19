@@ -35,6 +35,10 @@ export interface Session {
   context_window?: number;
   context_percentage?: number;
   github_repo?: string; // GitHub repo full_name (e.g., "owner/repo") when connected
+  // Branching support
+  parent_session_id?: string; // Parent session ID (null for root sessions)
+  branch_point_message_id?: string; // Message ID where branch occurred
+  model?: string; // Model selection per chat
 }
 
 export interface SessionMessage {

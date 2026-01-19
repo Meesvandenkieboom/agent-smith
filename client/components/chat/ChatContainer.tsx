@@ -33,9 +33,12 @@ import { areNotificationsEnabled } from '../../utils/notifications';
 import { PlanApprovalModal } from '../plan/PlanApprovalModal';
 import { BuildWizard } from '../build-wizard/BuildWizard';
 import { ScrollButton } from './ScrollButton';
+import { BranchDialog } from './BranchDialog';
+import { BranchIndicator } from './BranchIndicator';
 import { useWebSocket } from '../../hooks/useWebSocket';
 import { useSessionAPI, type Session } from '../../hooks/useSessionAPI';
-import { Menu, Edit3 } from 'lucide-react';
+import { useBranching } from '../../hooks/useBranching';
+import { Menu, Edit3, GitBranch } from 'lucide-react';
 import type { Message } from '../message/types';
 import { toast } from '../../utils/toast';
 import { showError } from '../../utils/errorMessages';
@@ -109,7 +112,12 @@ export function ChatContainer() {
   // GitHub repository selected for session
   const [selectedRepo, setSelectedRepo] = useState<{ url: string; name: string } | null>(null);
 
+  // Branch dialog state
+  const [branchDialogOpen, setBranchDialogOpen] = useState(false);
+  const [branchingSessionId, setBranchingSessionId] = useState<string | null>(null);
+
   const sessionAPI = useSessionAPI();
+  const { createBranch, getBranches } = useBranching();
 
   // Per-session loading state helpers
   const isSessionLoading = (sessionId: string | null): boolean => {
@@ -1216,6 +1224,42 @@ export function ChatContainer() {
     }, 100);
   };
 
+  // Handle chat branching from sidebar
+  const handleChatBranch = (chatId: string) => {
+    setBranchingSessionId(chatId);
+    setBranchDialogOpen(true);
+  };
+
+  // Handle branch dialog confirmation
+  const handleBranchConfirm = async (config: { model?: string; title?: string }) => {
+    if (!branchingSessionId) return;
+
+    // Get the last message of the session to branch from
+    const sessionMessages = await sessionAPI.fetchSessionMessages(branchingSessionId);
+    if (sessionMessages.length === 0) {
+      toast.error('Cannot branch empty chat', {
+        description: 'Add some messages first before branching.',
+      });
+      return;
+    }
+
+    const lastMessage = sessionMessages[sessionMessages.length - 1];
+
+    const branchedSession = await createBranch(branchingSessionId, {
+      messageId: lastMessage.id,
+      model: config.model,
+      title: config.title,
+    });
+
+    if (branchedSession) {
+      // Reload sessions and switch to the new branch
+      await loadSessions();
+      handleSessionSelect(branchedSession.id);
+      setBranchDialogOpen(false);
+      setBranchingSessionId(null);
+    }
+  };
+
   return (
     <div className="flex h-screen">
       {/* Sidebar */}
@@ -1225,18 +1269,23 @@ export function ChatContainer() {
         chats={sessions.map(session => {
           // Extract folder name from working_directory path
           const folderName = session.working_directory?.split('/').filter(Boolean).pop() || session.title;
+          // Count branches for this session
+          const branchCount = sessions.filter(s => s.parent_session_id === session.id).length;
           return {
             id: session.id,
             title: folderName,
             timestamp: new Date(session.updated_at),
             isActive: session.id === currentSessionId,
             isLoading: loadingSessions.has(session.id),
+            parentSessionId: session.parent_session_id,
+            branchCount,
           };
         })}
         onNewChat={handleNewChat}
         onChatSelect={handleSessionSelect}
         onChatDelete={handleChatDelete}
         onChatRename={handleChatRename}
+        onChatBranch={handleChatBranch}
         currentSessionId={currentSessionId}
       />
 
@@ -1300,6 +1349,21 @@ export function ChatContainer() {
 
             {/* Right side */}
             <div className="header-right">
+              {/* Branch Indicator */}
+              {currentSessionId && sessions.find(s => s.id === currentSessionId)?.parent_session_id && (
+                <BranchIndicator
+                  parentSessionTitle={
+                    sessions.find(s => s.id === sessions.find(c => c.id === currentSessionId)?.parent_session_id)?.working_directory?.split('/').filter(Boolean).pop() ||
+                    'Parent'
+                  }
+                  parentSessionId={sessions.find(s => s.id === currentSessionId)?.parent_session_id || ''}
+                  onNavigateToParent={() => {
+                    const parentId = sessions.find(s => s.id === currentSessionId)?.parent_session_id;
+                    if (parentId) handleSessionSelect(parentId);
+                  }}
+                  compact
+                />
+              )}
               {/* GitHub Repo Indicator */}
               {currentSessionId && sessions.find(s => s.id === currentSessionId)?.github_repo && (
                 <GitHubRepoIndicator
@@ -1394,6 +1458,24 @@ export function ChatContainer() {
         <BuildWizard
           onComplete={handleBuildComplete}
           onClose={handleCloseBuildWizard}
+        />
+      )}
+
+      {/* Branch Dialog */}
+      {branchDialogOpen && branchingSessionId && (
+        <BranchDialog
+          isOpen={branchDialogOpen}
+          onClose={() => {
+            setBranchDialogOpen(false);
+            setBranchingSessionId(null);
+          }}
+          onConfirm={handleBranchConfirm}
+          parentSessionTitle={
+            sessions.find(s => s.id === branchingSessionId)?.working_directory?.split('/').filter(Boolean).pop() ||
+            sessions.find(s => s.id === branchingSessionId)?.title ||
+            'Chat'
+          }
+          currentModel={selectedModel}
         />
       )}
 

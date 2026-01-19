@@ -42,6 +42,19 @@ export interface Session {
   context_window?: number;
   context_percentage?: number;
   github_repo?: string; // GitHub repo full_name (e.g., "owner/repo") when connected
+  // Branching support
+  parent_session_id?: string; // Parent session ID (null for root sessions)
+  branch_point_message_id?: string; // Message ID where branch occurred
+  model?: string; // Model selection per chat (allows switching models on branch)
+}
+
+export interface BranchInfo {
+  sessionId: string;
+  title: string;
+  created_at: string;
+  message_count: number;
+  branch_point_message_id: string;
+  model?: string;
 }
 
 export interface SessionMessage {
@@ -155,6 +168,9 @@ class SessionDatabase {
 
     // Migration: Add github_repo column if it doesn't exist
     this.migrateGithubRepo();
+
+    // Migration: Add branching columns if they don't exist
+    this.migrateBranching();
   }
 
   private migrateWorkingDirectory() {
@@ -362,6 +378,61 @@ class SessionDatabase {
     }
   }
 
+  private migrateBranching() {
+    try {
+      const columns = this.db.query<{ name: string }, []>(
+        "PRAGMA table_info(sessions)"
+      ).all();
+
+      const hasParentSessionId = columns.some(col => col.name === 'parent_session_id');
+      const hasBranchPointMessageId = columns.some(col => col.name === 'branch_point_message_id');
+      const hasModel = columns.some(col => col.name === 'model');
+
+      if (!hasParentSessionId || !hasBranchPointMessageId || !hasModel) {
+        console.log('📦 Migrating database: Adding branching support');
+
+        if (!hasParentSessionId) {
+          this.db.run(`
+            ALTER TABLE sessions
+            ADD COLUMN parent_session_id TEXT
+          `);
+        }
+
+        if (!hasBranchPointMessageId) {
+          this.db.run(`
+            ALTER TABLE sessions
+            ADD COLUMN branch_point_message_id TEXT
+          `);
+        }
+
+        if (!hasModel) {
+          this.db.run(`
+            ALTER TABLE sessions
+            ADD COLUMN model TEXT
+          `);
+        }
+
+        // Create indexes for efficient branch queries
+        this.db.run(`
+          CREATE INDEX IF NOT EXISTS idx_sessions_parent_id
+          ON sessions(parent_session_id)
+        `);
+
+        this.db.run(`
+          CREATE INDEX IF NOT EXISTS idx_sessions_branch_point
+          ON sessions(branch_point_message_id)
+        `);
+
+        console.log('✅ Branching support added successfully');
+      } else {
+        console.log('✅ Branching support already exists');
+      }
+    } catch (error) {
+      console.error('❌ Database branching migration failed:', error);
+      throw error;
+    }
+  }
+
   // Session operations
   createSession(title: string = "New Chat", workingDirectory?: string, mode: 'general' | 'coder' | 'intense-research' | 'spark' = 'general', githubRepo?: string): Session {
     const id = randomUUID();
@@ -464,6 +535,9 @@ class SessionDatabase {
           s.context_window,
           s.context_percentage,
           s.github_repo,
+          s.parent_session_id,
+          s.branch_point_message_id,
+          s.model,
           COUNT(m.id) as message_count
         FROM sessions s
         LEFT JOIN messages m ON s.id = m.session_id
@@ -508,6 +582,9 @@ class SessionDatabase {
           s.context_window,
           s.context_percentage,
           s.github_repo,
+          s.parent_session_id,
+          s.branch_point_message_id,
+          s.model,
           COUNT(m.id) as message_count
         FROM sessions s
         LEFT JOIN messages m ON s.id = m.session_id
@@ -808,6 +885,192 @@ class SessionDatabase {
       console.error('❌ Failed to clear session messages:', error);
       return false;
     }
+  }
+
+  // ========== BRANCHING METHODS ==========
+
+  /**
+   * Create a branched session from a specific message
+   */
+  createBranchedSession(
+    parentSessionId: string,
+    branchPointMessageId: string,
+    model?: string,
+    title?: string
+  ): Session | null {
+    const parentSession = this.getSession(parentSessionId);
+    if (!parentSession) {
+      console.error('Parent session not found:', parentSessionId);
+      return null;
+    }
+
+    // Verify branch point message exists in parent session
+    const messages = this.getSessionMessages(parentSessionId);
+    const branchPointIndex = messages.findIndex(m => m.id === branchPointMessageId);
+
+    if (branchPointIndex === -1) {
+      console.error('Branch point message not found:', branchPointMessageId);
+      return null;
+    }
+
+    const id = randomUUID();
+    const now = new Date().toISOString();
+
+    // Create new directory for branch
+    const branchWorkingDir = this.createChatDirectory(id);
+
+    // Use provided title or generate from parent
+    const branchTitle = title || `${parentSession.title}-branch`;
+
+    // Use provided model or inherit from parent
+    const branchModel = model || parentSession.model || undefined;
+
+    this.db.run(
+      `INSERT INTO sessions (
+        id, title, created_at, updated_at, working_directory,
+        permission_mode, mode, github_repo, model,
+        parent_session_id, branch_point_message_id
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        id, branchTitle, now, now, branchWorkingDir,
+        parentSession.permission_mode,
+        parentSession.mode,
+        parentSession.github_repo || null,
+        branchModel || null,
+        parentSessionId,
+        branchPointMessageId
+      ]
+    );
+
+    // Copy messages up to and including branch point
+    const messagesToCopy = messages.slice(0, branchPointIndex + 1);
+    for (const msg of messagesToCopy) {
+      const newMsgId = randomUUID();
+      this.db.run(
+        "INSERT INTO messages (id, session_id, type, content, timestamp) VALUES (?, ?, ?, ?, ?)",
+        [newMsgId, id, msg.type, msg.content, msg.timestamp]
+      );
+    }
+
+    // Setup slash commands for this session
+    setupSessionCommands(branchWorkingDir, parentSession.mode);
+
+    console.log(`✅ Created branch session ${id.substring(0, 8)} from ${parentSessionId.substring(0, 8)} at message ${branchPointIndex + 1}`);
+
+    return this.getSession(id);
+  }
+
+  /**
+   * Get all child branches of a session
+   */
+  getSessionBranches(sessionId: string): BranchInfo[] {
+    return this.db
+      .query<BranchInfo, [string]>(
+        `SELECT
+          s.id as sessionId,
+          s.title,
+          s.created_at,
+          s.branch_point_message_id,
+          s.model,
+          COUNT(m.id) as message_count
+        FROM sessions s
+        LEFT JOIN messages m ON s.id = m.session_id
+        WHERE s.parent_session_id = ?
+        GROUP BY s.id
+        ORDER BY s.created_at DESC`
+      )
+      .all(sessionId);
+  }
+
+  /**
+   * Get parent session info
+   */
+  getParentSession(sessionId: string): Session | null {
+    const session = this.getSession(sessionId);
+    if (!session || !session.parent_session_id) {
+      return null;
+    }
+    return this.getSession(session.parent_session_id);
+  }
+
+  /**
+   * Get all sessions in branch tree (parent, siblings, children)
+   */
+  getBranchTree(sessionId: string): {
+    parent: Session | null;
+    current: Session | null;
+    siblings: BranchInfo[];
+    children: BranchInfo[];
+  } {
+    const current = this.getSession(sessionId);
+    if (!current) {
+      return { parent: null, current: null, siblings: [], children: [] };
+    }
+
+    const parent = current.parent_session_id
+      ? this.getSession(current.parent_session_id)
+      : null;
+
+    const siblings = parent
+      ? this.getSessionBranches(parent.id).filter(b => b.sessionId !== sessionId)
+      : [];
+
+    const children = this.getSessionBranches(sessionId);
+
+    return { parent, current, siblings, children };
+  }
+
+  /**
+   * Update model for a session
+   */
+  updateSessionModel(sessionId: string, model: string): boolean {
+    try {
+      const result = this.db.run(
+        "UPDATE sessions SET model = ?, updated_at = ? WHERE id = ?",
+        [model, new Date().toISOString(), sessionId]
+      );
+
+      return result.changes > 0;
+    } catch (error) {
+      console.error('Failed to update session model:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Check if message is a branch point
+   */
+  isMessageBranchPoint(messageId: string): boolean {
+    const result = this.db
+      .query<{ count: number }, [string]>(
+        "SELECT COUNT(*) as count FROM sessions WHERE branch_point_message_id = ?"
+      )
+      .get(messageId);
+
+    return (result?.count || 0) > 0;
+  }
+
+  /**
+   * Get branches from a specific message
+   */
+  getBranchesFromMessage(sessionId: string, messageId: string): BranchInfo[] {
+    return this.db
+      .query<BranchInfo, [string, string]>(
+        `SELECT
+          s.id as sessionId,
+          s.title,
+          s.created_at,
+          s.branch_point_message_id,
+          s.model,
+          COUNT(m.id) as message_count
+        FROM sessions s
+        LEFT JOIN messages m ON s.id = m.session_id
+        WHERE s.parent_session_id = ?
+        AND s.branch_point_message_id = ?
+        GROUP BY s.id
+        ORDER BY s.created_at DESC`
+      )
+      .all(sessionId, messageId);
   }
 
   close() {

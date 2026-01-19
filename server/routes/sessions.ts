@@ -219,6 +219,108 @@ export async function handleSessionRoutes(
     }
   }
 
+  // ========== BRANCHING ROUTES ==========
+
+  // POST /api/sessions/:id/branch - Create branch from message
+  if (url.pathname.match(/^\/api\/sessions\/[^/]+\/branch$/) && req.method === 'POST') {
+    const sessionId = url.pathname.split('/')[3];
+    const body = await req.json() as {
+      messageId: string;
+      model?: string;
+      title?: string;
+    };
+
+    console.log('🌿 API: Create branch request:', {
+      sessionId,
+      messageId: body.messageId,
+      model: body.model,
+      title: body.title
+    });
+
+    const branchedSession = sessionDb.createBranchedSession(
+      sessionId,
+      body.messageId,
+      body.model,
+      body.title
+    );
+
+    if (branchedSession) {
+      return new Response(JSON.stringify({ success: true, session: branchedSession }), {
+        headers: { 'Content-Type': 'application/json' },
+      });
+    } else {
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'Failed to create branch. Ensure parent session and message exist.'
+      }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+  }
+
+  // GET /api/sessions/:id/branches - Get child branches
+  if (url.pathname.match(/^\/api\/sessions\/[^/]+\/branches$/) && req.method === 'GET') {
+    const sessionId = url.pathname.split('/')[3];
+    const branches = sessionDb.getSessionBranches(sessionId);
+
+    return new Response(JSON.stringify({ branches }), {
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  // GET /api/sessions/:id/tree - Get full branch tree
+  if (url.pathname.match(/^\/api\/sessions\/[^/]+\/tree$/) && req.method === 'GET') {
+    const sessionId = url.pathname.split('/')[3];
+    const tree = sessionDb.getBranchTree(sessionId);
+
+    return new Response(JSON.stringify(tree), {
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  // PATCH /api/sessions/:id/model - Update session model
+  if (url.pathname.match(/^\/api\/sessions\/[^/]+\/model$/) && req.method === 'PATCH') {
+    const sessionId = url.pathname.split('/')[3];
+    const body = await req.json() as { model: string };
+
+    console.log('🔄 API: Update session model:', {
+      sessionId,
+      model: body.model
+    });
+
+    const success = sessionDb.updateSessionModel(sessionId, body.model);
+
+    if (success) {
+      // Clear SDK session ID to force respawn with new model
+      sessionDb.updateSdkSessionId(sessionId, null);
+
+      // Cleanup SDK stream
+      sessionStreamManager.cleanupSession(sessionId, 'model_changed');
+      activeQueries.delete(sessionId);
+
+      const session = sessionDb.getSession(sessionId);
+      return new Response(JSON.stringify({ success: true, session }), {
+        headers: { 'Content-Type': 'application/json' },
+      });
+    } else {
+      return new Response(JSON.stringify({ success: false, error: 'Session not found' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+  }
+
+  // GET /api/sessions/:id/parent - Get parent session
+  if (url.pathname.match(/^\/api\/sessions\/[^/]+\/parent$/) && req.method === 'GET') {
+    const sessionId = url.pathname.split('/')[3];
+    const parent = sessionDb.getParentSession(sessionId);
+
+    return new Response(JSON.stringify({ parent }), {
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
   // Route not handled by this module
   return undefined;
 }
