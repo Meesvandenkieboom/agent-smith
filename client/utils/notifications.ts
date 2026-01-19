@@ -135,17 +135,13 @@ export function showClaudeResponseNotification(
   const plainText = stripMarkdown(message);
   const body = truncateText(plainText, maxPreviewLength);
 
-  // Create notification with full options (from commit 7b79955 which worked)
+  // Create notification - keep simple like the test notification that works
   try {
     console.log('[Notification] Creating notification with body:', body.substring(0, 50) + '...');
 
     const notification = new Notification(title, {
       body,
-      icon: iconUrl,
-      badge: iconUrl,
-      tag: 'agentic-response', // Replaces previous notification
-      requireInteraction: true, // Keep notification visible until user interacts
-      silent: false, // Play notification sound
+      tag: 'agentic-response',
     });
 
     console.log('[Notification] Notification created successfully');
