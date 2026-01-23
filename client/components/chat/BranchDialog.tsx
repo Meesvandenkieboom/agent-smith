@@ -7,6 +7,7 @@
 
 import React, { useState } from 'react';
 import { GitBranch, X, Loader2 } from 'lucide-react';
+import { AVAILABLE_MODELS } from '../../config/models';
 
 interface BranchDialogProps {
   isOpen: boolean;
@@ -17,12 +18,6 @@ interface BranchDialogProps {
   messageIndex?: number;
   currentModel: string;
 }
-
-const AVAILABLE_MODELS = [
-  { id: 'sonnet', name: 'Claude Sonnet 4' },
-  { id: 'opus', name: 'Claude Opus 4' },
-  { id: 'haiku', name: 'Claude Haiku 4' },
-];
 
 export function BranchDialog({
   isOpen,

@@ -27,6 +27,7 @@ import { deleteSessionPictures, deleteSessionFiles } from "./imageUtils";
 import { setupSessionCommands } from "./commandSetup";
 import { migrateSessionIfNeeded } from "./migrations/migrateSessionStructure";
 import { generateChatTitle } from "./utils/chatTitles";
+import { configureGitCredentials, isGitHubConnected } from "./routes/github";
 
 export interface Session {
   id: string;
@@ -939,6 +940,14 @@ class SessionDatabase {
         // Copy entire workspace directory from parent to branch
         fs.cpSync(parentPaths.workspace, branchPaths.workspace, { recursive: true });
         console.log(`📁 Copied workspace files from parent session`);
+
+        // Configure git credentials for the branch if it has a .git folder and GitHub is connected
+        const branchGitDir = path.join(branchPaths.workspace, '.git');
+        if (fs.existsSync(branchGitDir) && isGitHubConnected()) {
+          configureGitCredentials(branchPaths.workspace)
+            .then(() => console.log(`🔑 Configured git credentials for branch`))
+            .catch((err) => console.warn(`⚠️  Could not configure git credentials for branch:`, err));
+        }
       } catch (error) {
         console.warn(`⚠️  Could not copy workspace files:`, error);
         // Continue without workspace files - not a fatal error
