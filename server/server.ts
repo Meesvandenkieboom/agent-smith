@@ -45,7 +45,9 @@ if (cliFlag) {
 }
 
 import { watch } from "fs";
-import localtunnel from "localtunnel";
+import { spawn } from "child_process";
+import { homedir } from "os";
+import { existsSync } from "fs";
 import { getDefaultWorkingDirectory, ensureDirectory } from "./directoryUtils";
 import { handleStaticFile } from "./staticFileServer";
 import { initializeStartup, checkNodeAvailability } from "./startup";
@@ -235,31 +237,87 @@ console.log(' ╚═╝  ╚═╝ ╚═════╝ ╚══════�
 console.log('\n');
 console.log(`  👉 Local:  http://localhost:${server.port}`);
 
-// Start tunnel if enabled
+// Start tunnel if enabled (using cloudflared)
 if (ENABLE_TUNNEL) {
+  // Find cloudflared binary
+  const cloudflaredPaths = [
+    `${homedir()}/.local/bin/cloudflared`,
+    '/usr/local/bin/cloudflared',
+    '/usr/bin/cloudflared',
+    'cloudflared' // PATH fallback
+  ];
+
+  const cloudflaredPath = cloudflaredPaths.find(p => p === 'cloudflared' || existsSync(p)) || 'cloudflared';
+
   try {
-    const tunnel = await localtunnel({ port: 3001, local_host: 'localhost' });
-    console.log(`  📱 Public: ${tunnel.url}`);
-    console.log('\n');
-    console.log('  ⚠️  First visit may show a reminder page - click "Continue" to access.');
-
-    tunnel.on('close', () => {
-      console.log('\n  🔌 Tunnel closed.');
+    const tunnelProcess = spawn(cloudflaredPath, ['tunnel', '--url', 'http://localhost:3001'], {
+      stdio: ['ignore', 'pipe', 'pipe']
     });
 
-    tunnel.on('error', (err: Error) => {
+    let urlPrinted = false;
+
+    const handleOutput = (data: Buffer) => {
+      const output = data.toString();
+      // cloudflared outputs the URL in a line like: "https://xxx.trycloudflare.com"
+      const urlMatch = output.match(/https:\/\/[a-z0-9-]+\.trycloudflare\.com/);
+      if (urlMatch && !urlPrinted) {
+        urlPrinted = true;
+        console.log(`  📱 Public: ${urlMatch[0]}`);
+        console.log('\n');
+        console.log('  ═══════════════════════════════════════════════════════════════════════════════');
+        console.log('\n');
+        console.log('  All logs will show below this:');
+        console.log('\n');
+      }
+    };
+
+    tunnelProcess.stdout.on('data', handleOutput);
+    tunnelProcess.stderr.on('data', handleOutput);
+
+    tunnelProcess.on('error', (err) => {
       console.error('\n  ❌ Tunnel error:', err.message);
+      console.log('\n');
+      console.log('  Install cloudflared: curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o ~/.local/bin/cloudflared && chmod +x ~/.local/bin/cloudflared');
     });
+
+    tunnelProcess.on('close', (code) => {
+      if (code !== 0 && code !== null) {
+        console.log(`\n  🔌 Tunnel closed (exit code: ${code})`);
+      }
+    });
+
+    // Clean up tunnel on exit
+    process.on('SIGINT', () => {
+      tunnelProcess.kill();
+      process.exit(0);
+    });
+    process.on('SIGTERM', () => {
+      tunnelProcess.kill();
+      process.exit(0);
+    });
+
+    // Wait a bit for the URL to be printed, then show fallback message
+    setTimeout(() => {
+      if (!urlPrinted) {
+        console.log('  📱 Tunnel starting... (URL will appear shortly)');
+        console.log('\n');
+        console.log('  ═══════════════════════════════════════════════════════════════════════════════');
+        console.log('\n');
+        console.log('  All logs will show below this:');
+        console.log('\n');
+      }
+    }, 3000);
+
   } catch (error) {
     console.log('\n');
     console.error('  ❌ Failed to start tunnel:', error);
+    console.log('  Install cloudflared: curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o ~/.local/bin/cloudflared && chmod +x ~/.local/bin/cloudflared');
   }
 } else {
   console.log('  💡 Tip: Run with --tunnel to access from your phone');
+  console.log('\n');
+  console.log('  ═══════════════════════════════════════════════════════════════════════════════');
+  console.log('\n');
+  console.log('  All logs will show below this:');
+  console.log('\n');
 }
-
-console.log('\n');
-console.log('  ═══════════════════════════════════════════════════════════════════════════════');
-console.log('\n');
-console.log('  All logs will show below this:');
-console.log('\n');
