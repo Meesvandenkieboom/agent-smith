@@ -355,6 +355,11 @@ export function getSessionPaths(sessionId: string): SessionPaths {
  */
 export function getSessionPathsFromWorkingDir(workingDirectory: string): SessionPaths {
   const root = workingDirectory;
+  const workspacePath = path.join(root, 'workspace');
+
+  // Detect: if workspace/ subdirectory exists, this is an Agentic session directory.
+  // Otherwise, it's an external/custom directory — use it directly as workspace.
+  const isSessionDir = fs.existsSync(workspacePath) && fs.statSync(workspacePath).isDirectory();
 
   return {
     root,
@@ -362,6 +367,6 @@ export function getSessionPathsFromWorkingDir(workingDirectory: string): Session
     metadata: path.join(root, 'metadata'),
     claudeMd: path.join(root, 'metadata', 'CLAUDE.md'),
     attachments: path.join(root, 'metadata', 'attachments'),
-    workspace: path.join(root, 'workspace'),
+    workspace: isSessionDir ? workspacePath : root,
   };
 }
